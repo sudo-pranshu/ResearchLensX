@@ -1,0 +1,64 @@
+{
+  "config": "configs/h2_scifact_verifier.yaml",
+  "root": "data/raw/scifact/data",
+  "verifier": "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli",
+  "judge": "roberta-large-mnli",
+  "batch_size": 16,
+  "limit": null,
+  "skip_judge": false,
+  "out": "results",
+  "run_name": "EXP-H2-001_scifact_verifier_dev",
+  "git": "e49b40e",
+  "environment": {
+    "python": "3.12.11",
+    "platform": "macOS-27.2-arm64-arm-64bit",
+    "torch": "2.15.0",
+    "device": "mps"
+  },
+  "dataset": "SciFact 2020 release",
+  "split_reported": "dev",
+  "selection_split": "train",
+  "n_pairs": {
+    "train": 919,
+    "dev": 340
+  },
+  "models": {
+    "V": {
+      "model": "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli",
+      "revision": "6f5cf0a2b59cabb106aca4c287eed12e357e90eb",
+      "id2label": {
+        "0": "entailment",
+        "1": "neutral",
+        "2": "contradiction"
+      },
+      "max_length": 512
+    },
+    "J": {
+      "model": "roberta-large-mnli",
+      "revision": "2a8f12d27941090092df78e4ba6f0928eb5eac98",
+      "id2label": {
+        "0": "contradiction",
+        "1": "neutral",
+        "2": "entailment"
+      },
+      "max_length": 512
+    }
+  },
+  "timings_s": {
+    "lr": 1.1,
+    "V_train_scoring": 599.3,
+    "V_dev_scoring": 236.5,
+    "J_dev_scoring": 397.1
+  },
+  "selection": {
+    "lr": {
+      "C": 0.01,
+      "heldout_train_macro_f1": 0.599167251275963
+    },
+    "V:sentence:tuned": {
+      "train_macro_f1": 0.6253602872936072,
+      "support_threshold": 0.3,
+      "contradict_threshold": 0.95
+    }
+  }
+}

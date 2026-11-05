@@ -1,0 +1,2 @@
+{"id": 1, "claim": "Drug A reduces blood pressure.", "evidence": {"11": [{"sentences": [1], "label": "SUPPORT"}], "22": [{"sentences": [1], "label": "CONTRADICT"}]}, "cited_doc_ids": [11, 22]}
+{"id": 2, "claim": "Soil bacteria cause headaches.", "evidence": {}, "cited_doc_ids": [33]}

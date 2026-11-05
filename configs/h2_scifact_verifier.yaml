@@ -1,0 +1,6 @@
+# EXP-H2-001: verifier component on SciFact (oracle cited abstracts). Selection on train, report dev.
+root: data/raw/scifact/data
+verifier: MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli   # V: MNLI+FEVER+ANLI (claim-verification style data)
+judge: roberta-large-mnli                                 # J: different architecture + training data
+batch_size: 16
+out: results

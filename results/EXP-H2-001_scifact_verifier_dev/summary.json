@@ -1,0 +1,308 @@
+{
+  "lr": {
+    "SUPPORTS": {
+      "precision": 0.62,
+      "recall": 0.4492753623188406,
+      "f1": 0.5210084033613446,
+      "support": 138
+    },
+    "CONTRADICTS": {
+      "precision": 0.3170731707317073,
+      "recall": 0.36619718309859156,
+      "f1": 0.33986928104575165,
+      "support": 71
+    },
+    "INSUFFICIENT": {
+      "precision": 0.6329113924050633,
+      "recall": 0.7633587786259542,
+      "f1": 0.6920415224913494,
+      "support": 131
+    },
+    "macro_f1": 0.5176397356328152,
+    "accuracy": 0.5529411764705883,
+    "confusion": {
+      "labels_rows_gold_cols_pred": [
+        "SUPPORTS",
+        "CONTRADICTS",
+        "INSUFFICIENT"
+      ],
+      "matrix": [
+        [
+          62,
+          43,
+          33
+        ],
+        [
+          20,
+          26,
+          25
+        ],
+        [
+          18,
+          13,
+          100
+        ]
+      ]
+    },
+    "macro_f1_ci95": [
+      0.46176112803380015,
+      0.5723417752028523
+    ],
+    "n": 340
+  },
+  "V:sentence": {
+    "SUPPORTS": {
+      "precision": 0.9104477611940298,
+      "recall": 0.4420289855072464,
+      "f1": 0.5951219512195123,
+      "support": 138
+    },
+    "CONTRADICTS": {
+      "precision": 0.4307692307692308,
+      "recall": 0.7887323943661971,
+      "f1": 0.5572139303482586,
+      "support": 71
+    },
+    "INSUFFICIENT": {
+      "precision": 0.6083916083916084,
+      "recall": 0.6641221374045801,
+      "f1": 0.635036496350365,
+      "support": 131
+    },
+    "macro_f1": 0.5957907926393786,
+    "accuracy": 0.6,
+    "confusion": {
+      "labels_rows_gold_cols_pred": [
+        "SUPPORTS",
+        "CONTRADICTS",
+        "INSUFFICIENT"
+      ],
+      "matrix": [
+        [
+          61,
+          33,
+          44
+        ],
+        [
+          3,
+          56,
+          12
+        ],
+        [
+          3,
+          41,
+          87
+        ]
+      ]
+    },
+    "macro_f1_ci95": [
+      0.5387000792523994,
+      0.6496384607142783
+    ],
+    "n": 340
+  },
+  "V:sentence:tuned": {
+    "SUPPORTS": {
+      "precision": 0.8513513513513513,
+      "recall": 0.45652173913043476,
+      "f1": 0.5943396226415094,
+      "support": 138
+    },
+    "CONTRADICTS": {
+      "precision": 0.5903614457831325,
+      "recall": 0.6901408450704225,
+      "f1": 0.6363636363636364,
+      "support": 71
+    },
+    "INSUFFICIENT": {
+      "precision": 0.5737704918032787,
+      "recall": 0.8015267175572519,
+      "f1": 0.6687898089171974,
+      "support": 131
+    },
+    "macro_f1": 0.6331643559741145,
+    "accuracy": 0.638235294117647,
+    "confusion": {
+      "labels_rows_gold_cols_pred": [
+        "SUPPORTS",
+        "CONTRADICTS",
+        "INSUFFICIENT"
+      ],
+      "matrix": [
+        [
+          63,
+          16,
+          59
+        ],
+        [
+          3,
+          49,
+          19
+        ],
+        [
+          8,
+          18,
+          105
+        ]
+      ]
+    },
+    "macro_f1_ci95": [
+      0.5752369886285545,
+      0.6859594629043907
+    ],
+    "n": 340
+  },
+  "V:passage": {
+    "SUPPORTS": {
+      "precision": 0.7563025210084033,
+      "recall": 0.6521739130434783,
+      "f1": 0.7003891050583657,
+      "support": 138
+    },
+    "CONTRADICTS": {
+      "precision": 0.6307692307692307,
+      "recall": 0.5774647887323944,
+      "f1": 0.6029411764705882,
+      "support": 71
+    },
+    "INSUFFICIENT": {
+      "precision": 0.6794871794871795,
+      "recall": 0.8091603053435115,
+      "f1": 0.7386759581881533,
+      "support": 131
+    },
+    "macro_f1": 0.6806687465723691,
+    "accuracy": 0.6970588235294117,
+    "confusion": {
+      "labels_rows_gold_cols_pred": [
+        "SUPPORTS",
+        "CONTRADICTS",
+        "INSUFFICIENT"
+      ],
+      "matrix": [
+        [
+          90,
+          13,
+          35
+        ],
+        [
+          15,
+          41,
+          15
+        ],
+        [
+          14,
+          11,
+          106
+        ]
+      ]
+    },
+    "macro_f1_ci95": [
+      0.6226654669949865,
+      0.7345443493941954
+    ],
+    "n": 340
+  },
+  "J:sentence": {
+    "SUPPORTS": {
+      "precision": 0.88,
+      "recall": 0.4782608695652174,
+      "f1": 0.619718309859155,
+      "support": 138
+    },
+    "CONTRADICTS": {
+      "precision": 0.3602150537634409,
+      "recall": 0.9436619718309859,
+      "f1": 0.5214007782101168,
+      "support": 71
+    },
+    "INSUFFICIENT": {
+      "precision": 0.7341772151898734,
+      "recall": 0.44274809160305345,
+      "f1": 0.5523809523809524,
+      "support": 131
+    },
+    "macro_f1": 0.5645000134834081,
+    "accuracy": 0.5617647058823529,
+    "confusion": {
+      "labels_rows_gold_cols_pred": [
+        "SUPPORTS",
+        "CONTRADICTS",
+        "INSUFFICIENT"
+      ],
+      "matrix": [
+        [
+          66,
+          54,
+          18
+        ],
+        [
+          1,
+          67,
+          3
+        ],
+        [
+          8,
+          65,
+          58
+        ]
+      ]
+    },
+    "macro_f1_ci95": [
+      0.5074695204764579,
+      0.6182759018758124
+    ],
+    "n": 340
+  },
+  "V:oracle_rationale(S/C only)": {
+    "SUPPORTS": {
+      "precision": 0.927536231884058,
+      "recall": 0.463768115942029,
+      "f1": 0.6183574879227054,
+      "support": 138
+    },
+    "CONTRADICTS": {
+      "precision": 0.8703703703703703,
+      "recall": 0.6619718309859155,
+      "f1": 0.752,
+      "support": 71
+    },
+    "INSUFFICIENT": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 0
+    },
+    "macro_f1": 0.45678582930756845,
+    "accuracy": 0.5311004784688995,
+    "confusion": {
+      "labels_rows_gold_cols_pred": [
+        "SUPPORTS",
+        "CONTRADICTS",
+        "INSUFFICIENT"
+      ],
+      "matrix": [
+        [
+          64,
+          7,
+          67
+        ],
+        [
+          5,
+          47,
+          19
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "macro_f1_ci95": [
+      0.41246495741521977,
+      0.49614808561952606
+    ],
+    "n": 209
+  }
+}

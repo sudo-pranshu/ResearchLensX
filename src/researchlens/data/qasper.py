@@ -46,6 +46,12 @@ class Question:
     gold_per_annotator: list[set[int]] = field(default_factory=list)
     answer_types: list[str] = field(default_factory=list)
     unmatched_evidence: int = 0                         # evidence strings we failed to align
+    answers: list[str] = field(default_factory=list)    # gold answer string per annotator (for Answer-F1)
+
+    @property
+    def majority_type(self) -> str:
+        from collections import Counter
+        return Counter(self.answer_types).most_common(1)[0][0] if self.answer_types else "none"
 
 
 @dataclass
@@ -67,6 +73,19 @@ def _answer_type(a: dict) -> str:
     if a.get("free_form_answer"):
         return "abstractive"
     return "none"
+
+
+def _answer_string(a: dict) -> str:
+    """Official QASPER convention: spans joined, else free-form, else Yes/No, else 'Unanswerable'."""
+    if a.get("unanswerable"):
+        return "Unanswerable"
+    if a.get("extractive_spans"):
+        return ", ".join(a["extractive_spans"])
+    if a.get("free_form_answer"):
+        return a["free_form_answer"]
+    if a.get("yes_no") is not None:
+        return "Yes" if a["yes_no"] else "No"
+    return ""
 
 
 def _norm(s: str) -> str:
@@ -107,10 +126,11 @@ def load_qasper(path: str | Path, include_floats: bool = True) -> QasperSplit:
         paper_pids[paper_id] = pids
 
         for qa in paper.get("qas", []):
-            per_ann, types, unmatched = [], [], 0
+            per_ann, types, unmatched, strings = [], [], 0, []
             for ans in qa.get("answers", []):
                 a = ans["answer"]
                 types.append(_answer_type(a))
+                strings.append(_answer_string(a))
                 ev = set()
                 for e in a.get("evidence", []) or []:
                     n_evidence += 1
@@ -124,7 +144,7 @@ def load_qasper(path: str | Path, include_floats: bool = True) -> QasperSplit:
             if not union:
                 n_no_evidence += 1
             n_unmatched += unmatched
-            questions.append(Question(qa["question_id"], paper_id, qa["question"], union, per_ann, types, unmatched))
+            questions.append(Question(qa["question_id"], paper_id, qa["question"], union, per_ann, types, unmatched, strings))
 
     stats = {
         "papers": len(paper_pids), "paragraphs": len(paragraphs), "questions": len(questions),
