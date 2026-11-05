@@ -1,0 +1,9 @@
+# PDF ingestion, KG and app (CPU only). Mirrors pyproject [app].
+pymupdf>=1.24
+lxml>=5.0
+streamlit>=1.35
+fastapi>=0.110
+uvicorn>=0.29
+networkx>=3.2
+plotly>=5.20
+pyvis>=0.3

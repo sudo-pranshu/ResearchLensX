@@ -1,0 +1,30 @@
+[
+  {
+    "doc_id": "sample-hybrid-retrieval",
+    "title": "SYNTHETIC FIXTURE: Hybrid Retrieval for Scientific Question Answering",
+    "authors": ["Fixture Author"],
+    "year": 2024,
+    "abstract": "This synthetic paper is a test fixture. We combine BM25 with dense embeddings using reciprocal rank fusion.",
+    "sections": [
+      {"title": "Introduction", "paragraphs": ["Lexical retrieval matches exact terms. Dense retrieval matches meaning. We study whether combining them helps scientific question answering."]},
+      {"title": "Method", "paragraphs": ["We fuse BM25 and SPECTER2 rankings with reciprocal rank fusion using k equal to 60.", "Passages are section-aware chunks of at most 256 tokens."]},
+      {"title": "Experiments", "paragraphs": ["We evaluate on the QASPER dataset. The hybrid improves Recall@5 over BM25 in this fixture text.", "We report results on the SciFact dataset as a second benchmark."]}
+    ],
+    "references": [{"raw": "Cormack, Clarke and Buettcher. Reciprocal rank fusion. SIGIR 2009."}],
+    "source": "fixture"
+  },
+  {
+    "doc_id": "sample-claim-verification",
+    "title": "SYNTHETIC FIXTURE: Claim Verification with Natural Language Inference",
+    "authors": ["Fixture Author"],
+    "year": 2023,
+    "abstract": "This synthetic paper is a test fixture. We verify scientific claims against evidence passages with an NLI model.",
+    "sections": [
+      {"title": "Introduction", "paragraphs": ["Generated answers can contain unsupported claims. Claim verification checks each claim against evidence."]},
+      {"title": "Method", "paragraphs": ["A DeBERTa NLI model labels each claim and passage pair as supports, contradicts or insufficient."]},
+      {"title": "Experiments", "paragraphs": ["We evaluate on the SciFact dataset. Hybrid retrieval did not improve results over BM25 in this fixture text."]}
+    ],
+    "references": [],
+    "source": "fixture"
+  }
+]

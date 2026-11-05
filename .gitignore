@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+build/
+dist/
+# Secrets
+.env
+*.pem
+*token*
+!src/**/*token*.py
+# Data / models / artefacts (never commit)
+data/raw/
+data/processed/
+data/external/*
+!data/external/README.md
+checkpoints/*
+!checkpoints/README.md
+artifacts/
+*.pt
+*.bin
+*.safetensors
+*.ckpt
+*.npy
+*.faiss
+*.pdf
+*.tgz
+*.tar.gz
+# Results: keep config/summary/comparisons, ignore large per-query dumps unless force-added
+results/**/per_query.jsonl
+# Notebooks / OS / IDE
+.ipynb_checkpoints/
+.DS_Store
+.idea/
+.vscode/
+.claude/settings.local.json

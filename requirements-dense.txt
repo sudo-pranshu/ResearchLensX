@@ -1,0 +1,6 @@
+# Neural retrieval / NLI / LLM (GPU optional; CPU works but is slow for large corpora). Mirrors pyproject [dense].
+torch>=2.1
+transformers>=4.40
+sentence-transformers>=2.7
+adapters>=1.0
+faiss-cpu>=1.8

@@ -1,0 +1,8 @@
+# H1 neural dense + hybrids, QASPER dev. Run on Colab (GPU) by Pranshu. Requires `pip install -e .[dense]`.
+qasper: data/raw/qasper/qasper-dev-v0.3.json
+setting: within_paper
+systems: [bm25, e5, scibert, specter2, "rrf:bm25+e5", "rrf:bm25+specter2", "linear:bm25+specter2"]
+primary: recall@5
+rrf_k: 60
+depth: 100
+out: results

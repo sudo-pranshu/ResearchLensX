@@ -1,0 +1,12 @@
+# H1 classical baselines, QASPER dev, within-paper (primary H1 setting). Tuning split: dev.
+qasper: data/raw/qasper/qasper-dev-v0.3.json
+setting: within_paper
+systems: [bm25, tfidf, lsa, "rrf:bm25+lsa", "rrf:bm25+tfidf", "linear:bm25+lsa"]
+primary: recall@5
+rrf_k: 60
+depth: 100
+alpha: 0.5
+bm25_k1: 1.5
+bm25_b: 0.75
+lsa_dim: 256
+out: results
