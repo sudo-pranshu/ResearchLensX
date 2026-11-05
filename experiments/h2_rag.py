@@ -96,8 +96,8 @@ def main(argv=None):
     chunks = [c for d in docs for c in chunk_document(d)]
     titles = {d.doc_id: d.title for d in docs}
     texts = [c.index_text(titles[c.doc_id]) for c in chunks]
-    systems, base, rmeta = build_systems([args.retriever], texts, RetrievalConfig(), log=lambda m: print(m, flush=True))
-    prime_queries(base, [q.question for q in qs])
+    systems, base, rmeta = build_systems([args.retriever], texts, RetrievalConfig(batch_size=8),
+                                         log=lambda m: print(m, flush=True), queries=[q.question for q in qs])
     index = ChunkIndex(systems[args.retriever], chunks, titles, name=args.retriever, prefit=True)
     retrieved = {q.qid: index.search(q.question, k=args.k, doc_ids=[q.paper_id]) for q in qs}
     timings["retrieval_s"] = round(time.time() - t, 1)

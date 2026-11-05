@@ -80,8 +80,24 @@ class DenseRetriever(Retriever):
 
     def _qvec(self, query: str) -> np.ndarray:
         if query not in self._q:
+            if self.encoder is None:
+                raise KeyError(f"{self.name}: encoder released and query not primed: {query[:60]!r}")
             self.prime_queries([query])
         return self._q[query]
+
+    def release(self) -> None:
+        """Free the encoder (GPU/RAM) once corpus + all needed queries are embedded."""
+        self.encoder = None
+        import gc
+        gc.collect()
+        try:
+            import torch
+            if torch.backends.mps.is_available():
+                torch.mps.empty_cache()
+            elif torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except ImportError:
+            pass
 
     def score(self, query: str) -> np.ndarray:
         return self.emb @ self._qvec(query)
