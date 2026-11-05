@@ -29,6 +29,32 @@ from researchlens.evaluation.reporting import write_run                     # no
 from researchlens.retrieval.registry import RetrievalConfig, build_systems, prime_queries  # noqa: E402
 
 
+def build_windows(split, w: int):
+    """Section-agnostic units: each paper's paragraphs concatenated in order (captions excluded),
+    cut into windows of w words with stride w/2. Returns (texts, unit->paragraph ids, paper->unit ids)."""
+    texts, owners, paper_units = [], [], {}
+    for paper_id, pids in split.paper_pids.items():
+        words, wp = [], []
+        for pid in pids:
+            para = split.paragraphs[pid]
+            if para.is_float:
+                continue
+            toks = para.text.split()
+            words += toks
+            wp += [pid] * len(toks)
+        paper_units[paper_id] = []
+        for start in range(0, max(len(words), 1), max(w // 2, 1)):
+            chunk = words[start:start + w]
+            if not chunk:
+                break
+            paper_units[paper_id].append(len(texts))
+            texts.append(f"{split.titles[paper_id]}\n" + " ".join(chunk))
+            owners.append(list(dict.fromkeys(wp[start:start + w])))
+            if start + w >= len(words):
+                break
+    return texts, owners, paper_units
+
+
 def main(argv=None):
     pre = argparse.ArgumentParser(add_help=False)
     pre.add_argument("--config", default=None, help="YAML file whose keys set argument defaults (CLI wins)")
@@ -53,6 +79,10 @@ def main(argv=None):
     ap.add_argument("--out", default="results")
     ap.add_argument("--title-query", action="store_true", help="prepend paper title to the question")
     ap.add_argument("--run-name", default=None)
+    ap.add_argument("--unit", choices=["paragraph", "window"], default="paragraph",
+                    help="paragraph = section-aware units (default); window = section-agnostic fixed windows "
+                         "(ablation), mapped back to paragraphs by max window score")
+    ap.add_argument("--window-words", type=int, default=128)
     if known.config:
         import yaml
         cfg = yaml.safe_load(Path(known.config).read_text()) or {}
@@ -64,7 +94,13 @@ def main(argv=None):
 
     split = load_qasper(args.qasper, include_floats=not args.no_floats)
     print("data:", json.dumps(split.stats))
-    docs = [p.indexed_text(split.titles[p.paper_id], with_section=not args.no_section_prefix) for p in split.paragraphs]
+    if args.unit == "paragraph":
+        docs = [p.indexed_text(split.titles[p.paper_id], with_section=not args.no_section_prefix) for p in split.paragraphs]
+        unit_pids = [[p.pid] for p in split.paragraphs]
+        paper_units = split.paper_pids
+    else:
+        docs, unit_pids, paper_units = build_windows(split, args.window_words)
+        print(f"section-agnostic windows: {len(docs)} windows of {args.window_words} words", flush=True)
     questions = [q for q in split.questions if q.gold_union][: args.limit]
     print(f"evaluating {len(questions)} questions with evidence ({args.setting})")
 
@@ -80,9 +116,15 @@ def main(argv=None):
     for name, sys_ in systems.items():
         t = time.time()
         for q in questions:
-            cands = np.array(split.paper_pids[q.paper_id]) if args.setting == "within_paper" else None
+            cands = np.array(paper_units[q.paper_id]) if args.setting == "within_paper" else None
             query = f"{split.titles[q.paper_id]}. {q.question}" if args.title_query else q.question
-            ranked = [d for d, _ in sys_.search(query, k=20, candidates=cands)]
+            depth = 20 if args.unit == "paragraph" else 200
+            ranked = []
+            for u, _ in sys_.search(query, k=depth, candidates=cands):   # units -> paragraphs, first hit wins
+                for pid in unit_pids[u]:
+                    if pid not in ranked:
+                        ranked.append(pid)
+            ranked = ranked[:20]
             per_query[name].append({"qid": q.qid, "paper_id": q.paper_id, "n_gold": len(q.gold_union),
                                     "top5": ranked[:5], **all_metrics(ranked, q.gold_union)})
         search_seconds[name] = round(time.time() - t, 2)

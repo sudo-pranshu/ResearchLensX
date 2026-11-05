@@ -78,3 +78,28 @@ def test_kg_contract_roundtrip():
     g = KnowledgeGraph.model_validate({"nodes": [{"id": "p1", "type": "paper", "label": "P"}],
                                        "edges": [{"source": "p1", "target": "p1", "type": "cites"}]})
     assert g.nodes[0].type == "paper"
+
+
+def test_build_pipeline_falls_back_and_reports(docs):
+    from researchlens.pipeline import build_pipeline
+    pipe, status = build_pipeline(docs, retriever="no-such-retriever", generator="extractive", verifier=None)
+    assert status["in_use"]["retriever"] == "bm25" and status["fallbacks"]
+    ans = pipe.ask("Which dataset is used?", k=2)
+    assert ans.is_mock is False and ans.passages
+
+
+def test_revising_pipeline_with_fake_nli(docs):
+    import numpy as np
+    from researchlens.generation.llm_rag import LLMRAGGenerator
+    from researchlens.generation.verified import VerifiedReviser
+    from researchlens.pipeline import RevisingPipeline, build_default_pipeline
+    from researchlens.verification.nli import NLIVerifier
+    scorer = lambda p, h: np.array([[0.9, 0.05, 0.05] if ("QASPER" in x and "QASPER" in y) else [0.1, 0.1, 0.8]
+                                    for x, y in zip(p, h)])
+    base = build_default_pipeline(docs)
+    gen = LLMRAGGenerator(lambda m: "They evaluate on the QASPER dataset [2]. Unicorns exist [1].", name="fake")
+    pipe = RevisingPipeline(base.retriever, gen, VerifiedReviser(NLIVerifier(scorer, granularity="passage")))
+    ans = pipe.ask("Which dataset do they evaluate on?", k=3)
+    assert ans.mode == "verified_rag" and len(ans.sentences) == 1          # unsupported sentence dropped
+    cited = ans.passages[ans.sentences[0].citations[0]].chunk.text
+    assert "QASPER" in cited and ans.sentences[0].verification.label == "SUPPORTS"

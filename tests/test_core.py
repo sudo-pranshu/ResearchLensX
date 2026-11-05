@@ -141,3 +141,17 @@ def test_h1_script_end_to_end(tiny_qasper, tmp_path):
                                         "rrf:bm25+lsa", "linear:bm25+lsa", "--lsa-dim", "2", "--out", str(tmp_path)])
     assert set(summary) == {"bm25", "tfidf", "lsa", "rrf:bm25+lsa", "linear:bm25+lsa"}
     assert len(comps) == 6
+
+
+def test_build_windows_maps_back_to_paragraphs(tiny_qasper):
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "experiments"))
+    from h1_retrieval import build_windows
+    s = load_qasper(tiny_qasper)
+    texts, owners, paper_units = build_windows(s, w=4)
+    assert paper_units["p1"] == list(range(len(texts)))
+    float_pids = {p.pid for p in s.paragraphs if p.is_float}
+    covered = {pid for o in owners for pid in o}
+    assert covered == {p.pid for p in s.paragraphs} - float_pids     # every text paragraph reachable, no captions
+    assert all(len(t.split("\n", 1)[1].split()) <= 4 for t in texts)
