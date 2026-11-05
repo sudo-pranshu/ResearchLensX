@@ -1,0 +1,19 @@
+system,gold\pred,SUPPORTS,CONTRADICTS,INSUFFICIENT
+lr,SUPPORTS,62,43,33
+lr,CONTRADICTS,20,26,25
+lr,INSUFFICIENT,18,13,100
+V:sentence,SUPPORTS,61,33,44
+V:sentence,CONTRADICTS,3,56,12
+V:sentence,INSUFFICIENT,3,41,87
+V:sentence:tuned,SUPPORTS,63,16,59
+V:sentence:tuned,CONTRADICTS,3,49,19
+V:sentence:tuned,INSUFFICIENT,8,18,105
+V:passage,SUPPORTS,90,13,35
+V:passage,CONTRADICTS,15,41,15
+V:passage,INSUFFICIENT,14,11,106
+J:sentence,SUPPORTS,66,54,18
+J:sentence,CONTRADICTS,1,67,3
+J:sentence,INSUFFICIENT,8,65,58
+V:oracle_rationale(S/C only),SUPPORTS,64,7,67
+V:oracle_rationale(S/C only),CONTRADICTS,5,47,19
+V:oracle_rationale(S/C only),INSUFFICIENT,0,0,0
