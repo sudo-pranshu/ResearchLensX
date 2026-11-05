@@ -1,0 +1,117 @@
+{
+  "config": "configs/h1_dense_dev.yaml",
+  "qasper": "data/raw/qasper/qasper-dev-v0.3.json",
+  "systems": [
+    "bm25",
+    "tfidf",
+    "lsa",
+    "e5",
+    "scibert",
+    "specter2",
+    "rrf:bm25+e5",
+    "rrf:bm25+specter2",
+    "rrf:bm25+scibert",
+    "linear:bm25+e5",
+    "linear:bm25+specter2"
+  ],
+  "setting": "within_paper",
+  "no_section_prefix": false,
+  "no_floats": false,
+  "primary": "recall@5",
+  "rrf_k": 60,
+  "depth": 100,
+  "alpha": 0.5,
+  "bm25_k1": 1.5,
+  "bm25_b": 0.75,
+  "lsa_dim": 256,
+  "batch_size": 8,
+  "cache_dir": null,
+  "split_name": "dev",
+  "limit": null,
+  "out": "results",
+  "title_query": false,
+  "run_name": "EXP-H1-003_dense_dev_within_paper",
+  "unit": "paragraph",
+  "window_words": 128,
+  "dataset": "QASPER v0.3",
+  "data_stats": {
+    "papers": 281,
+    "paragraphs": 15122,
+    "questions": 1005,
+    "questions_without_evidence": 82,
+    "evidence_strings": 2808,
+    "evidence_unmatched": 129
+  },
+  "n_questions": 923,
+  "n_papers": 279,
+  "stats": "paper-level cluster bootstrap (10k) + cluster sign-flip randomisation, Holm per hybrid",
+  "git": "3531f78",
+  "environment": {
+    "python": "3.12.11",
+    "platform": "macOS-27.2-arm64-arm-64bit",
+    "torch": "2.15.0",
+    "device": "mps"
+  },
+  "finished_at": "2026-11-05T17:18:16+0530",
+  "fit_seconds": {
+    "bm25": 0.41,
+    "tfidf": 0.39,
+    "lsa": 2.82,
+    "e5": 8.95,
+    "scibert": 3.42,
+    "specter2": 7.26
+  },
+  "models": {
+    "bm25": {
+      "model": "bm25"
+    },
+    "tfidf": {
+      "model": "tfidf"
+    },
+    "lsa": {
+      "model": "lsa-256"
+    },
+    "e5": {
+      "model": "intfloat/e5-base-v2",
+      "revision": "f52bf8ec8c7124536f0efb74aca902b2995e5bcd",
+      "query_prefix": "query: ",
+      "doc_prefix": "passage: ",
+      "max_seq_length": 512,
+      "pooling": "model-default"
+    },
+    "scibert": {
+      "model": "allenai/scibert_scivocab_uncased",
+      "revision": "24f92d32b1bfb0bcaf9ab193ff3ad01e87732fc1",
+      "pooling": "mean",
+      "max_length": 512
+    },
+    "specter2": {
+      "model": "allenai/specter2_base",
+      "revision": "3447645e1def9117997203454fa4495937bfbd83",
+      "adapters": {
+        "doc": "allenai/specter2",
+        "query": "allenai/specter2_adhoc_query"
+      },
+      "pooling": "cls",
+      "max_length": 512
+    }
+  },
+  "embedding_cache": {
+    "hits": 5,
+    "misses": 1
+  },
+  "query_encode_seconds": 0.11,
+  "search_seconds": {
+    "bm25": 0.1,
+    "tfidf": 1.08,
+    "lsa": 0.2,
+    "e5": 0.78,
+    "scibert": 0.76,
+    "specter2": 0.74,
+    "rrf:bm25+e5": 1.09,
+    "rrf:bm25+specter2": 1.93,
+    "rrf:bm25+scibert": 0.98,
+    "linear:bm25+e5": 0.94,
+    "linear:bm25+specter2": 0.97
+  }
+}
