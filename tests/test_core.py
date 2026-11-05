@@ -52,7 +52,7 @@ def test_candidates_restrict_search():
 
 
 def test_tfidf_and_lsa_rank_obvious_match_first():
-    for r in (TfidfRetriever(), DenseRetriever(LSAEncoder(n_components=3), name="lsa")):
+    for r in (TfidfRetriever(), DenseRetriever(LSAEncoder(n_components=4), name="lsa")):  # full rank: no near-ties across BLAS builds
         r.fit(DOCS)
         assert r.search("LDA topic models expectation maximisation", 1)[0][0] == 2
 

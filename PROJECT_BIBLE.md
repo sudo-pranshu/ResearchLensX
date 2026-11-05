@@ -117,8 +117,9 @@ Each row needs a config file, a git commit and saved results. Rows are added by 
 
 | ID | Hyp. | Config | Commit | Models | Data | Primary result | Date | Status |
 |---|---|---|---|---|---|---|---|---|
-| EXP-H1-001 | H1 | `configs/h1_classical_dev.yaml` | see PR | BM25, TF-IDF, LSA (classical) | QASPER v0.3 dev | see PR | 2026-11-05 | rerun at commit in PR #1 |
-| EXP-H1-002 | H1 (secondary) | same, `setting: open`, ± title query | see PR | same | QASPER v0.3 dev | see PR | 2026-11-05 | rerun at commit in PR #1 |
+| EXP-H1-001 | H1 (dev, classical) | `configs/h1_classical_dev.yaml` | `02120d9` | BM25, TF-IDF, LSA-256 | QASPER v0.3 dev, within-paper, 923 Q / 281 papers | R@5: BM25 .435 · TF-IDF .391 · LSA .427 · RRF(BM25+LSA) .450 (Δ vs BM25 +.015 [−.003, +.034], p_holm .11, **n.s.**) · linear(BM25+LSA) .461 (Δ +.026 [+.010, +.043], p_holm .002) | 2026-11-05 | ✅ done (dev; classical only, so not a test of H1) |
+| EXP-H1-002 | H1 diagnostic | same, `--setting open` | `02120d9` | same | QASPER dev, open corpus (15,122 paragraphs) | nDCG@10: BM25 .142 · TF-IDF .104 · LSA .071 · RRF(BM25+LSA) .102 · linear .126. All hybrids are **worse** than BM25 | 2026-11-05 | ✅ done |
+| EXP-H1-002b | H1 diagnostic | same, `--setting open --title-query` | `02120d9` | BM25, LSA | QASPER dev, open corpus, title + question | nDCG@10: BM25 .183 · LSA .135 · RRF .154. Title conditioning → 99% of the top-10 is from the right paper (review R2) | 2026-11-05 | ✅ done |
 
 ## H. Engineering conventions (summary)
 Branches `main` (stable) ← `develop` (integration) ← `feature/<member>-<topic>`. PRs only; CI green; one review; owner of touched module approves. Conventional commits (`feat(retrieval): …`). No data, checkpoints, secrets or PDFs in git. Full rules: [CONTRIBUTING.md](CONTRIBUTING.md).
