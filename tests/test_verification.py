@@ -85,3 +85,13 @@ def test_classification_report():
     assert rep["SUPPORTS"]["recall"] == 0.5 and rep["INSUFFICIENT"]["precision"] == 0.5
     assert rep["macro_f1"] == pytest.approx((2/3 + 1 + 2/3) / 3)
     assert rep["macro_f1_ci95"][0] <= rep["macro_f1"] <= rep["macro_f1_ci95"][1]
+
+
+def test_lr_baseline_with_missing_class():
+    corpus, claims = load_corpus(FIX), load_claims("dev", FIX)
+    lr = LRVerifierBaseline().fit_vocab([d.text for d in corpus.values()])
+    c = claims[0]
+    X = np.array([lr.features(c.claim, corpus[d].sentences) for d in c.cited_doc_ids])
+    lr.fit(X, ["SUPPORTS", "CONTRADICTS"])                 # no INSUFFICIENT in training
+    P = lr.predict_proba(X)
+    assert P.shape == (2, 3) and np.all(P[:, 2] == 0)
