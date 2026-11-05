@@ -30,8 +30,7 @@ artifacts/
 *.pdf
 *.tgz
 *.tar.gz
-# Results: keep config/summary/comparisons, ignore large per-query dumps unless force-added
-results/**/per_query.jsonl
+# Results: everything under results/ is committed; files >5 MB go to Drive (see results/README.md)
 # Notebooks / OS / IDE
 .ipynb_checkpoints/
 .DS_Store
