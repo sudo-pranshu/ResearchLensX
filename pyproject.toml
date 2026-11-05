@@ -1,0 +1,22 @@
+[project]
+name = "researchlens"
+version = "0.1.0"
+description = "ResearchLens X: evidence-aware scientific literature understanding and cross-paper reasoning"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "scipy>=1.10", "scikit-learn>=1.3", "pydantic>=2.5", "pyyaml>=6.0"]
+
+[project.optional-dependencies]
+dense = ["torch>=2.1", "transformers>=4.40", "sentence-transformers>=2.7", "adapters>=1.0", "faiss-cpu>=1.8"]
+app = ["pymupdf>=1.24", "lxml>=5.0", "streamlit>=1.35", "fastapi>=0.110", "uvicorn>=0.29", "networkx>=3.2", "plotly>=5.20", "pyvis>=0.3"]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

@@ -1,0 +1,172 @@
+"""H1: hybrid lexical-semantic retrieval vs lexical-only and dense-only, on QASPER.
+
+Examples
+  python experiments/h1_retrieval.py --qasper data/raw/qasper/qasper-dev-v0.3.json \
+      --systems bm25 tfidf lsa rrf:bm25+lsa --setting within_paper
+
+  # with neural encoders (needs `pip install -e .[dense]`)
+  python experiments/h1_retrieval.py --qasper ... --systems bm25 e5 specter2 rrf:bm25+specter2 rrf:bm25+e5
+
+Tune on dev. Run the test split once per final configuration and keep the log.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from researchlens.data.qasper import load_qasper                      # noqa: E402
+from researchlens.evaluation.metrics import all_metrics                      # noqa: E402
+from researchlens.evaluation.stats import compare_many                       # noqa: E402
+from researchlens.retrieval.fusion import LinearFusionRetriever, RRFRetriever  # noqa: E402
+from researchlens.retrieval.lexical import BM25Retriever, TfidfRetriever        # noqa: E402
+
+
+def make_base(name: str, args):
+    from researchlens.retrieval import dense as D
+    if name == "bm25":
+        return BM25Retriever(k1=args.bm25_k1, b=args.bm25_b)
+    if name == "tfidf":
+        return TfidfRetriever()
+    if name == "lsa":
+        return D.DenseRetriever(D.LSAEncoder(n_components=args.lsa_dim), name="lsa")
+    if name == "e5":
+        return D.DenseRetriever(D.SentenceTransformerEncoder("intfloat/e5-base-v2", "query: ", "passage: "), name="e5")
+    if name == "bge":
+        return D.DenseRetriever(D.SentenceTransformerEncoder(
+            "BAAI/bge-base-en-v1.5", "Represent this sentence for searching relevant passages: "), name="bge")
+    if name == "scibert":
+        return D.DenseRetriever(D.MeanPoolEncoder(), name="scibert")
+    if name == "specter2":
+        return D.DenseRetriever(D.Specter2Encoder(), name="specter2")
+    raise ValueError(f"unknown system {name}")
+
+
+def build_systems(specs, args, docs):
+    """Base systems are fitted once and shared by any hybrid that references them."""
+    base: dict[str, object] = {}
+
+    def get(n):
+        if n not in base:
+            t = time.time()
+            base[n] = make_base(n, args).fit(docs)
+            print(f"  fitted {n} in {time.time() - t:.1f}s", flush=True)
+        return base[n]
+
+    systems = {}
+    for spec in specs:
+        if spec.startswith("rrf:"):
+            parts = spec[4:].split("+")
+            systems[spec] = RRFRetriever([get(p) for p in parts], k=args.rrf_k, depth=args.depth,
+                                         name=spec, fit_components=False).fit(docs)
+        elif spec.startswith("linear:"):
+            lex, den = spec[7:].split("+")
+            r = LinearFusionRetriever(get(lex), get(den), alpha=args.alpha, fit_components=False).fit(docs)
+            r.name = spec
+            systems[spec] = r
+        else:
+            systems[spec] = get(spec)
+    return systems
+
+
+def git_rev():
+    try:
+        return subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
+    except Exception:
+        return "nogit"
+
+
+def main(argv=None):
+    pre = argparse.ArgumentParser(add_help=False)
+    pre.add_argument("--config", default=None, help="YAML file whose keys set argument defaults (CLI wins)")
+    known, _ = pre.parse_known_args(argv)
+    ap = argparse.ArgumentParser(parents=[pre])
+    ap.add_argument("--qasper", required=False)
+    ap.add_argument("--systems", nargs="+", default=["bm25", "tfidf", "lsa", "rrf:bm25+lsa"])
+    ap.add_argument("--setting", choices=["within_paper", "open"], default="within_paper")
+    ap.add_argument("--no-section-prefix", action="store_true")
+    ap.add_argument("--no-floats", action="store_true")
+    ap.add_argument("--primary", default=None, help="metric for significance (default by setting)")
+    ap.add_argument("--rrf-k", type=int, default=60)
+    ap.add_argument("--depth", type=int, default=100)
+    ap.add_argument("--alpha", type=float, default=0.5)
+    ap.add_argument("--bm25-k1", type=float, default=1.5)
+    ap.add_argument("--bm25-b", type=float, default=0.75)
+    ap.add_argument("--lsa-dim", type=int, default=256)
+    ap.add_argument("--limit", type=int, default=None, help="debug: first N questions")
+    ap.add_argument("--out", default="results")
+    ap.add_argument("--title-query", action="store_true", help="prepend paper title to the question")
+    ap.add_argument("--run-name", default=None)
+    if known.config:
+        import yaml
+        cfg = yaml.safe_load(Path(known.config).read_text()) or {}
+        ap.set_defaults(**{k.replace("-", "_"): v for k, v in cfg.items()})
+    args = ap.parse_args(argv)
+    if not args.qasper:
+        ap.error("--qasper is required (CLI or config)")
+    primary = args.primary or ("recall@5" if args.setting == "within_paper" else "ndcg@10")
+
+    split = load_qasper(args.qasper, include_floats=not args.no_floats)
+    print("data:", json.dumps(split.stats))
+    docs = [p.indexed_text(split.titles[p.paper_id], with_section=not args.no_section_prefix) for p in split.paragraphs]
+    questions = [q for q in split.questions if q.gold_union][: args.limit]
+    print(f"evaluating {len(questions)} questions with evidence ({args.setting})")
+
+    systems = build_systems(args.systems, args, docs)
+    per_query: dict[str, list[dict]] = {name: [] for name in systems}
+    for name, sys_ in systems.items():
+        t = time.time()
+        for q in questions:
+            cands = np.array(split.paper_pids[q.paper_id]) if args.setting == "within_paper" else None
+            query = f"{split.titles[q.paper_id]}. {q.question}" if args.title_query else q.question
+            ranked = [d for d, _ in sys_.search(query, k=20, candidates=cands)]
+            per_query[name].append({"qid": q.qid, **all_metrics(ranked, q.gold_union)})
+        print(f"  searched {name} in {time.time() - t:.1f}s", flush=True)
+
+    summary = {n: {m: float(np.nanmean([r[m] for r in rows])) for m in rows[0] if m != "qid"}
+               for n, rows in per_query.items()}
+
+    # Significance: each hybrid vs every non-hybrid system, Holm-adjusted per hybrid.
+    comparisons = []
+    # Questions are clustered by paper -> paper-level cluster bootstrap / sign-flip.
+    groups = [q.paper_id for q in questions]
+    singles = {n: [r[primary] for r in rows] for n, rows in per_query.items() if ":" not in n}
+    for n, rows in per_query.items():
+        if ":" in n and singles:
+            comparisons += [c.to_dict() for c in compare_many(singles, n, [r[primary] for r in rows], primary,
+                                                               groups=groups)]
+
+    run_id = args.run_name or f"h1_{Path(args.qasper).stem}_{args.setting}_{int(time.time())}"
+    out = Path(args.out) / run_id
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "config.json").write_text(json.dumps({**vars(args), "git": git_rev(), "data_stats": split.stats,
+                                                  "n_questions": len(questions), "primary": primary}, indent=2))
+    (out / "summary.json").write_text(json.dumps(summary, indent=2))
+    (out / "comparisons.json").write_text(json.dumps(comparisons, indent=2))
+    with open(out / "per_query.jsonl", "w") as f:
+        for n, rows in per_query.items():
+            for r in rows:
+                f.write(json.dumps({"system": n, **r}) + "\n")
+
+    cols = ["recall@1", "recall@5", "recall@10", "mrr@10", "ndcg@10"]
+    print(f"\n{'system':<24}" + "".join(f"{c:>11}" for c in cols))
+    for n, s in summary.items():
+        print(f"{n:<24}" + "".join(f"{s[c]:>11.4f}" for c in cols))
+    if comparisons:
+        print(f"\nsignificance on {primary} (delta = hybrid - baseline):")
+        for c in comparisons:
+            print(f"  {c['system_b']} vs {c['system_a']}: delta={c['delta']:+.4f} "
+                  f"[{c['ci_low']:+.4f}, {c['ci_high']:+.4f}]  p_rand={c['p_randomization']:.4f}  p_holm={c['p_holm']:.4f}")
+    print(f"\nwrote {out}")
+    return summary, comparisons
+
+
+if __name__ == "__main__":
+    main()

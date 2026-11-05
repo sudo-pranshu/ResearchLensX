@@ -1,0 +1,7 @@
+# Core (CPU, small). Mirrors pyproject [project.dependencies] + dev.
+numpy>=1.24
+scipy>=1.10
+scikit-learn>=1.3
+pydantic>=2.5
+pyyaml>=6.0
+pytest>=8
