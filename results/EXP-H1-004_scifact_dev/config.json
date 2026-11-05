@@ -1,0 +1,107 @@
+{
+  "config": "configs/h1_scifact_dev.yaml",
+  "root": "data/raw/scifact/data",
+  "split": "dev",
+  "systems": [
+    "bm25",
+    "tfidf",
+    "lsa",
+    "e5",
+    "scibert",
+    "specter2",
+    "rrf:bm25+e5",
+    "rrf:bm25+specter2",
+    "rrf:bm25+scibert"
+  ],
+  "primary": "ndcg@10",
+  "rrf_k": 60,
+  "depth": 100,
+  "alpha": 0.5,
+  "lsa_dim": 256,
+  "batch_size": 8,
+  "cache_dir": null,
+  "out": "results",
+  "run_name": "EXP-H1-004_scifact_dev",
+  "dataset": "SciFact 2020 release",
+  "audit": {
+    "claims": 300,
+    "claims_with_evidence": 188,
+    "evidence_docs_total": 209,
+    "claims_multi_evidence_docs": 10,
+    "cited_pairs_by_label": {
+      "INSUFFICIENT": 131,
+      "SUPPORTS": 138,
+      "CONTRADICTS": 71
+    },
+    "evidence_docs_missing_from_corpus": 0,
+    "corpus_docs": 5183
+  },
+  "n_queries": 188,
+  "stats": "claim-level bootstrap (10k) + sign-flip randomisation, Holm per hybrid",
+  "git": "5bf96eb",
+  "environment": {
+    "python": "3.12.11",
+    "platform": "macOS-27.2-arm64-arm-64bit",
+    "torch": "2.15.0",
+    "device": "mps"
+  },
+  "finished_at": "2026-11-05T17:36:21+0530",
+  "fit_seconds": {
+    "bm25": 0.41,
+    "tfidf": 0.53,
+    "lsa": 3.46,
+    "e5": 343.44,
+    "scibert": 321.28,
+    "specter2": 386.42
+  },
+  "models": {
+    "bm25": {
+      "model": "bm25"
+    },
+    "tfidf": {
+      "model": "tfidf"
+    },
+    "lsa": {
+      "model": "lsa-256"
+    },
+    "e5": {
+      "model": "intfloat/e5-base-v2",
+      "revision": "f52bf8ec8c7124536f0efb74aca902b2995e5bcd",
+      "query_prefix": "query: ",
+      "doc_prefix": "passage: ",
+      "max_seq_length": 512,
+      "pooling": "model-default"
+    },
+    "scibert": {
+      "model": "allenai/scibert_scivocab_uncased",
+      "revision": "24f92d32b1bfb0bcaf9ab193ff3ad01e87732fc1",
+      "pooling": "mean",
+      "max_length": 512
+    },
+    "specter2": {
+      "model": "allenai/specter2_base",
+      "revision": "3447645e1def9117997203454fa4495937bfbd83",
+      "adapters": {
+        "doc": "allenai/specter2",
+        "query": "allenai/specter2_adhoc_query"
+      },
+      "pooling": "cls",
+      "max_length": 512
+    }
+  },
+  "embedding_cache": {
+    "hits": 0,
+    "misses": 6
+  },
+  "search_seconds": {
+    "bm25": 0.08,
+    "tfidf": 0.28,
+    "lsa": 0.18,
+    "e5": 0.15,
+    "scibert": 0.07,
+    "specter2": 0.07,
+    "rrf:bm25+e5": 0.14,
+    "rrf:bm25+specter2": 0.14,
+    "rrf:bm25+scibert": 0.15
+  }
+}
