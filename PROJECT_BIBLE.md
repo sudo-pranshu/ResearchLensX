@@ -120,6 +120,12 @@ Each row needs a config file, a git commit and saved results. Rows are added by 
 | EXP-H1-001 | H1 (dev, classical) | `configs/h1_classical_dev.yaml` | `02120d9` | BM25, TF-IDF, LSA-256 | QASPER v0.3 dev, within-paper, 923 Q / 281 papers | R@5: BM25 .435 · TF-IDF .391 · LSA .427 · RRF(BM25+LSA) .450 (Δ vs BM25 +.015 [−.003, +.034], p_holm .11, **n.s.**) · linear(BM25+LSA) .461 (Δ +.026 [+.010, +.043], p_holm .002) | 2026-11-05 | ✅ done (dev; classical only, so not a test of H1) |
 | EXP-H1-002 | H1 diagnostic | same, `--setting open` | `02120d9` | same | QASPER dev, open corpus (15,122 paragraphs) | nDCG@10: BM25 .142 · TF-IDF .104 · LSA .071 · RRF(BM25+LSA) .102 · linear .126. All hybrids are **worse** than BM25 | 2026-11-05 | ✅ done |
 | EXP-H1-002b | H1 diagnostic | same, `--setting open --title-query` | `02120d9` | BM25, LSA | QASPER dev, open corpus, title + question | nDCG@10: BM25 .183 · LSA .135 · RRF .154. Title conditioning → 99% of the top-10 is from the right paper (review R2) | 2026-11-05 | ✅ done |
+| EXP-H1-003 | H1 (dev, dense; selects D*) | `configs/h1_dense_dev.yaml` | `3531f78` | e5-base-v2 `f52bf8e`, SciBERT `24f92d3`, SPECTER2 base `3447645` + proximity/adhoc_query adapters | QASPER dev within-paper, 923 Q / 281 papers | R@5: e5 **.500** · BM25 .435 · SPECTER2 .288 · SciBERT .181 · **RRF(BM25+e5) .502**: Δ vs e5 +.002 [−.021, +.027] **n.s.**, vs BM25 +.067 [+.046, +.090] p_holm<.001 · linear(BM25+e5) .514 (vs e5 +.014, n.s.) | 2026-11-05 | ✅ done. D* = e5 (ADR-009). On dev the H1 decision rule is **not met** (hybrid ≯ D*) |
+| EXP-H1-004 | H1 test 2 (open corpus) | `configs/h1_scifact_dev.yaml` | `d161678`+ | same models | SciFact dev, 188 claims with evidence, 5,183 abstracts | nDCG@10: e5 **.870** · RRF(BM25+e5) .855 (Δ −.015 [−.047, +.015], n.s.) · SPECTER2 .804 · BM25 .801 · RRF(BM25+SPECTER2) .841 · SciBERT .121 | 2026-11-05 | ✅ done. Replicates QASPER: RRF helps weaker components, not the strongest dense model |
+| EXP-H2-001 | H2 component | `configs/h2_scifact_verifier.yaml` | `c3bf204`+ | V = MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli `6f5cf0a`; J = roberta-large-mnli `2a8f12d` | SciFact dev, 340 (claim, cited abstract) pairs; selection on train (919 pairs) | Macro-F1 [95% CI]: LR .518 [.46,.57] · V sentence .596 · V sentence+tuned .633 [.58,.69] (vs LR McNemar p=.026) · **V passage .681 [.62,.74]** (vs sentence p<.001) · J .565 | 2026-11-05 | ✅ done. The judge is weaker than the verifier, so judge-based H2 metrics need human validation |
+| EXP-H1-005 | H1 secondary | `scripts/run_h1_ablations.sh` | — | — | QASPER dev | — | — | ⏳ not run (section prefix / window units / RRF k / open-corpus diagnostics) |
+| EXP-H2-002 | H2 (dev **pilot**) | `configs/h2_rag_dev_pilot.yaml` | see run config | Qwen2.5-1.5B-Instruct (local), V, J | QASPER dev, 100 Q (extractive/abstractive, seed 0) | see PR | 2026-11-05 | ⏳ running |
+| EXP-H1-006 | H1 **final test** | to write | — | — | QASPER test | — | — | ⏳ not run (issue #18) |
 
 ## H. Engineering conventions (summary)
 Branches `main` (stable) ← `develop` (integration) ← `feature/<member>-<topic>`. PRs only; CI green; one review; owner of touched module approves. Conventional commits (`feat(retrieval): …`). No data, checkpoints, secrets or PDFs in git. Full rules: [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -135,6 +141,9 @@ Branches `main` (stable) ← `develop` (integration) ← `feature/<member>-<topi
 | ADR-006 | 11-05 | Cluster bootstrap by paper for QASPER | IID bootstrap | Review R5 | Pranshu |
 | ADR-007 | 11-05 | All LLM generations cached and committed as JSONL | Regenerate on demand | Only Pranshu has a GPU; keeps H2 re-runnable on CPU | Pranshu/Pawan |
 | ADR-008 | 11-05 | No paid API in the evaluated pipeline | Hosted LLM | Reproducibility and resource rules | Pranshu |
+| ADR-009 | 11-05 | D* = e5-base-v2; the pre-registered H1 hybrid is RRF(BM25 + e5), k=60, depth=100 | SPECTER2 (expected), SciBERT | Pre-registered rule: best dense R@5 on QASPER dev (e5 .500 vs SPECTER2 .288 vs SciBERT .181, EXP-H1-003) | Pranshu |
+| ADR-010 | 11-05 | H2 verifier uses passage-level premises, thresholds 0.5 | sentence-level (+tuned) | Best on SciFact dev (EXP-H2-001, p<.001). H2 itself is measured on QASPER, so no selection leakage | Pranshu/Pawan |
+| ADR-011 | 11-05 | Experiments run one transformer at a time and set KMP_DUPLICATE_LIB_OK / OMP_NUM_THREADS=1 on macOS | — | 8 GB laptops thrash; torch+faiss libomp clash caused aborts/segfaults | Pranshu |
 
 ## J. Status
 See [PROJECT_STATE.md](PROJECT_STATE.md). 14-day plan:
