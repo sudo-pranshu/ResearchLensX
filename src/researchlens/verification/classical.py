@@ -68,8 +68,12 @@ class LRVerifierBaseline:
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         P = self.clf.predict_proba((X - self.mu) / self.sd)
-        cols = [list(self.clf.classes_).index(v) for v in VERDICTS]
-        return P[:, cols]
+        out = np.zeros((len(X), len(VERDICTS)))
+        classes = list(self.clf.classes_)
+        for j, v in enumerate(VERDICTS):               # a class absent from training gets probability 0
+            if v in classes:
+                out[:, j] = P[:, classes.index(v)]
+        return out
 
     def predict(self, X: np.ndarray) -> list[str]:
         return [VERDICTS[i] for i in self.predict_proba(X).argmax(1)]
