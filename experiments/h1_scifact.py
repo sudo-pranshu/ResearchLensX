@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+import researchlens._runtime  # noqa: E402,F401  (must precede numpy/torch/faiss use)
 
 from researchlens.data.scifact import audit, load_claims, load_corpus           # noqa: E402
 from researchlens.evaluation.metrics import all_metrics                         # noqa: E402
