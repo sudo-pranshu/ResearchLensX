@@ -1,7 +1,7 @@
 # ResearchLens X
 
 **Evidence-Aware Scientific Literature Understanding and Cross-Paper Reasoning Using Hybrid NLP**
-B.Tech E&TC final-year project: Pranshu Kumar (lead), Pawan, Gaurav.
+B.Tech E&TC final-year project: Pranshu Kumar, Pawan Shinde, Gaurav Sharma.
 
 ResearchLens X answers questions over scientific papers with **hybrid retrieval** (BM25 + SPECTER2, fused by Reciprocal Rank Fusion) and **passage-level citations**. Each claim is **verified with NLI** as SUPPORTS / CONTRADICTS / INSUFFICIENT. A **knowledge graph** and **multi-paper comparison** view sit on top. The research contribution is a controlled evaluation of hybrid retrieval (H1) and claim-level verification (H2) on QASPER and SciFact.
 
