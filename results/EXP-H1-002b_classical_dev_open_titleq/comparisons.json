@@ -1,0 +1,32 @@
+[
+  {
+    "system_a": "bm25",
+    "system_b": "rrf:bm25+lsa",
+    "metric": "recall@5",
+    "n": 923,
+    "mean_a": 0.1741533032489296,
+    "mean_b": 0.14207864658198238,
+    "delta": -0.032074656666947254,
+    "ci_low": -0.048928380444164386,
+    "ci_high": -0.015895433290552003,
+    "p_randomization": 9.999000099990002e-05,
+    "p_wilcoxon": 5.168704641684679e-05,
+    "ci_method": "cluster_bootstrap",
+    "p_holm": 0.00019998000199980003
+  },
+  {
+    "system_a": "lsa",
+    "system_b": "rrf:bm25+lsa",
+    "metric": "recall@5",
+    "n": 923,
+    "mean_a": 0.12425180114536064,
+    "mean_b": 0.14207864658198238,
+    "delta": 0.01782684543662174,
+    "ci_low": 0.007158862057637965,
+    "ci_high": 0.02877418257374201,
+    "p_randomization": 0.000999900009999,
+    "p_wilcoxon": 0.0008291979890684436,
+    "ci_method": "cluster_bootstrap",
+    "p_holm": 0.000999900009999
+  }
+]

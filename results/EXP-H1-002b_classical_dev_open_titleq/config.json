@@ -1,0 +1,33 @@
+{
+  "config": "configs/h1_classical_dev.yaml",
+  "qasper": "data/raw/qasper/qasper-dev-v0.3.json",
+  "systems": [
+    "bm25",
+    "lsa",
+    "rrf:bm25+lsa"
+  ],
+  "setting": "open",
+  "no_section_prefix": false,
+  "no_floats": false,
+  "primary": "recall@5",
+  "rrf_k": 60,
+  "depth": 100,
+  "alpha": 0.5,
+  "bm25_k1": 1.5,
+  "bm25_b": 0.75,
+  "lsa_dim": 256,
+  "limit": null,
+  "out": "results",
+  "title_query": true,
+  "run_name": "EXP-H1-002b_classical_dev_open_titleq",
+  "git": "02120d9",
+  "data_stats": {
+    "papers": 281,
+    "paragraphs": 15122,
+    "questions": 1005,
+    "questions_without_evidence": 82,
+    "evidence_strings": 2808,
+    "evidence_unmatched": 129
+  },
+  "n_questions": 923
+}
