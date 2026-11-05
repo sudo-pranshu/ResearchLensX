@@ -1,16 +1,19 @@
 # Project State
 
-Updated: 2026-11-05 (Day 1) by Pranshu. Update this file at every milestone (PROJECT_BIBLE §J).
+Updated: 2026-11-06 (Day 2) by Pranshu. Update this file at every milestone (PROJECT_BIBLE §J).
 
 ## Completed
 - Research design v0.1 → critical review → v1.0 ([review](docs/RESEARCH_DESIGN_REVIEW.md)).
 - Contracts (`contracts.py`), `Pipeline` facade, mocks, synthetic fixtures.
-- Retrieval: BM25 (from scratch), TF-IDF, LSA, RRF, linear fusion, `ChunkIndex` adapter. Dense encoders (SPECTER2, e5, SciBERT) are written but **not yet executed**.
+- Retrieval: BM25 (from scratch), TF-IDF, LSA, RRF, linear fusion, `ChunkIndex` adapter. Dense encoders (SPECTER2, e5, SciBERT) with embedding cache + FAISS, executed on QASPER and SciFact.
 - Evaluation: ranking metrics; bootstrap / randomisation with paper-level clustering; Holm; McNemar.
 - QASPER v0.3 downloaded and audited; loader + `Document` adapter.
 - Section-aware chunker (ownership → Gaurav).
 - CPU end-to-end demo: `scripts/demo.py` (BM25 → extractive answer → mock verification) runs on real QASPER papers.
 - H1 classical dev baselines (EXP-H1-001/002).
+- H1 dense dev (EXP-H1-003): D* = e5; RRF(BM25+e5) is not better than e5 alone. SciFact retrieval (EXP-H1-004) shows the same pattern.
+- Real NLI verifier on SciFact dev (EXP-H2-001): passage-level macro-F1 .681 vs LR .518. The judge model is weaker (.565).
+- H2 dev pilot (EXP-H2-002): inconclusive, because the small generator rarely cites; Answer-F1 guard failed.
 
 ## Active (Days 1–2): see GitHub issues, milestone "Day 2: setup & baselines"
 | Owner | Task |

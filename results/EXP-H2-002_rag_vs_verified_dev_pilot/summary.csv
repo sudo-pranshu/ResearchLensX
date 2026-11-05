@@ -1,0 +1,6 @@
+system,n_sentences,n_abstain_sentences,citation_recall,citation_precision,n_citations,answer_f1,n_kept,n_pruned,n_reassigned,n_dropped
+rag,0.86,0.28,0.0556,0.0625,0.15,0.196,0.0,0.0,0.0,0.0
+verify_only,0.86,0.28,0.0556,0.0625,0.15,0.196,0.04,0.01,0.6,0.21
+verified,0.65,0.45,0.697,0.6955,0.8,0.1591,0.04,0.01,0.6,0.21
+ablation:no_reassign,0.65,0.45,0.0909,0.0909,0.08,0.1591,0.04,0.01,0.0,0.21
+ablation:no_drop,0.86,0.28,0.5255,0.5312,0.86,0.196,0.04,0.01,0.6,0.21

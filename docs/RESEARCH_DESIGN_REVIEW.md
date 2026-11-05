@@ -1,6 +1,6 @@
 # Research Design v0.1: Critical Review → v1.0
 
-Date: 2026-11-05 (Day 1). Reviewer: Pranshu (with Claude). Status: **accepted**, and v1.0 is now the specification in [PROJECT_BIBLE.md §B](../PROJECT_BIBLE.md#b-research-specification).
+Date: 2026-11-05 (Day 1). Reviewer: Pranshu Kumar. Status: **accepted**, and v1.0 is now the specification in [PROJECT_BIBLE.md §B](../PROJECT_BIBLE.md#b-research-specification).
 v0.1 is kept unchanged for the record in [RESEARCH_DESIGN.md](RESEARCH_DESIGN.md).
 
 The review is grounded in two pieces of evidence: (a) the dataset audit on Day 1, and (b) H1 classical baselines on QASPER dev, which were run before the review (uncommitted, question-level CIs; see EXP-H1-001/002 for the committed reruns).
