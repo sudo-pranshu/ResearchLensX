@@ -22,6 +22,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+import researchlens._runtime  # noqa: E402,F401  (must precede numpy/torch/faiss use)
 
 from researchlens.contracts import Answer                                          # noqa: E402
 from researchlens.data.qasper import load_qasper, load_qasper_documents            # noqa: E402

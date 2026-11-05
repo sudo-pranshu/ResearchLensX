@@ -21,6 +21,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+import researchlens._runtime  # noqa: E402,F401  (must precede numpy/torch/faiss use)
 
 from researchlens.data.qasper import load_qasper                      # noqa: E402
 from researchlens.evaluation.metrics import all_metrics                      # noqa: E402
