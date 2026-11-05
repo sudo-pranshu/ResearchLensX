@@ -19,11 +19,13 @@ python experiments/h1_retrieval.py --config configs/h1_final_test.yaml         #
 - Within-paper: candidates = that paper's paragraphs. Gold = union of annotators' evidence, with headings excluded and logged as `evidence_unmatched`.
 - Questions with no gold evidence are excluded (dev: 82/1,005), and the count is logged.
 - Statistics: `compare_many(..., groups=paper_ids)` gives the paper-level cluster bootstrap (10k) CI and cluster sign-flip p-values, Holm-adjusted across the baselines of one hybrid.
-- SciFact retrieval: queries = claims, corpus = 5,183 abstracts (title + abstract), gold = abstracts with evidence labels; dev split; claim-level statistics.
+- SciFact retrieval: queries = claims (188 dev claims with evidence), corpus = 5,183 abstracts (title + abstract), gold = abstracts with official evidence annotations; dev split; claim-level statistics.
+  **Limitations of abstract-level evaluation:** (i) finding the right abstract does not mean the rationale sentences are found; (ii) judgements are incomplete, because only cited abstracts were annotated, so an unannotated relevant abstract counts as a miss (scores are lower bounds, though the paired comparison stays fair); (iii) ~1.1 relevant abstracts per claim, so Recall@k ≈ Hit@k. **Never** aggregate SciFact abstract-level and QASPER paragraph-level metrics into one score.
+- Diagnostics (secondary, never confirmatory): title-conditioned open-corpus QASPER (`--setting open --title-query`); section prefix off (`--no-section-prefix`); section-agnostic windows (`--unit window`, captions excluded in all compared arms via `--no-floats`).
 
 ## 3. H2 verification
 1. **Verifier component:** SciFact dev, given gold abstracts → label macro-F1. Report the LR baseline, the zero-shot NLI model, and the optional fine-tuned model. Model selection uses an 80/20 split of train.
-2. **Generations:** `experiments/h2_generate.py --config configs/h2_generate_test.yaml` on Colab writes `results/h2/generations_<split>_<model>.jsonl`, one record per question with the retrieved passages, prompt hash and raw output. Committed.
+2. **Generations:** `experiments/h2_rag.py --config configs/h2_rag_*.yaml` writes `<run>/generations.jsonl`, one record per question with the prompt hash, raw output, latency and model revision. Committed. Re-runs replay it, so the LLM is called only for new (question, prompt) pairs. The local pilot uses Qwen2.5-1.5B-Instruct; the final run uses a 7–8B model on Colab (issue #20).
 3. **Verified RAG** runs on CPU from cached generations, so the GPU is not needed again.
 4. **Citation P/R (ALCE-style)** uses judge model J ≠ verifier V:
    - *Citation recall* (per sentence) = 1 if J(concat(cited passages) ⇒ sentence) = entailment.
