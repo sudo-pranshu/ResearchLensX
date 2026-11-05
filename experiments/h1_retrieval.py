@@ -25,62 +25,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from researchlens.data.qasper import load_qasper                      # noqa: E402
 from researchlens.evaluation.metrics import all_metrics                      # noqa: E402
 from researchlens.evaluation.stats import compare_many                       # noqa: E402
-from researchlens.retrieval.fusion import LinearFusionRetriever, RRFRetriever  # noqa: E402
-from researchlens.retrieval.lexical import BM25Retriever, TfidfRetriever        # noqa: E402
-
-
-def make_base(name: str, args):
-    from researchlens.retrieval import dense as D
-    if name == "bm25":
-        return BM25Retriever(k1=args.bm25_k1, b=args.bm25_b)
-    if name == "tfidf":
-        return TfidfRetriever()
-    if name == "lsa":
-        return D.DenseRetriever(D.LSAEncoder(n_components=args.lsa_dim), name="lsa")
-    if name == "e5":
-        return D.DenseRetriever(D.SentenceTransformerEncoder("intfloat/e5-base-v2", "query: ", "passage: "), name="e5")
-    if name == "bge":
-        return D.DenseRetriever(D.SentenceTransformerEncoder(
-            "BAAI/bge-base-en-v1.5", "Represent this sentence for searching relevant passages: "), name="bge")
-    if name == "scibert":
-        return D.DenseRetriever(D.MeanPoolEncoder(), name="scibert")
-    if name == "specter2":
-        return D.DenseRetriever(D.Specter2Encoder(), name="specter2")
-    raise ValueError(f"unknown system {name}")
-
-
-def build_systems(specs, args, docs):
-    """Base systems are fitted once and shared by any hybrid that references them."""
-    base: dict[str, object] = {}
-
-    def get(n):
-        if n not in base:
-            t = time.time()
-            base[n] = make_base(n, args).fit(docs)
-            print(f"  fitted {n} in {time.time() - t:.1f}s", flush=True)
-        return base[n]
-
-    systems = {}
-    for spec in specs:
-        if spec.startswith("rrf:"):
-            parts = spec[4:].split("+")
-            systems[spec] = RRFRetriever([get(p) for p in parts], k=args.rrf_k, depth=args.depth,
-                                         name=spec, fit_components=False).fit(docs)
-        elif spec.startswith("linear:"):
-            lex, den = spec[7:].split("+")
-            r = LinearFusionRetriever(get(lex), get(den), alpha=args.alpha, fit_components=False).fit(docs)
-            r.name = spec
-            systems[spec] = r
-        else:
-            systems[spec] = get(spec)
-    return systems
-
-
-def git_rev():
-    try:
-        return subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
-    except Exception:
-        return "nogit"
+from researchlens.evaluation.reporting import write_run                     # noqa: E402
+from researchlens.retrieval.registry import RetrievalConfig, build_systems, prime_queries  # noqa: E402
 
 
 def main(argv=None):
@@ -100,6 +46,9 @@ def main(argv=None):
     ap.add_argument("--bm25-k1", type=float, default=1.5)
     ap.add_argument("--bm25-b", type=float, default=0.75)
     ap.add_argument("--lsa-dim", type=int, default=256)
+    ap.add_argument("--batch-size", type=int, default=32)
+    ap.add_argument("--cache-dir", default=None, help="embedding cache (default artifacts/embeddings)")
+    ap.add_argument("--split-name", default=None, help="label recorded in config, e.g. dev/test")
     ap.add_argument("--limit", type=int, default=None, help="debug: first N questions")
     ap.add_argument("--out", default="results")
     ap.add_argument("--title-query", action="store_true", help="prepend paper title to the question")
@@ -119,19 +68,25 @@ def main(argv=None):
     questions = [q for q in split.questions if q.gold_union][: args.limit]
     print(f"evaluating {len(questions)} questions with evidence ({args.setting})")
 
-    systems = build_systems(args.systems, args, docs)
+    rcfg = RetrievalConfig(bm25_k1=args.bm25_k1, bm25_b=args.bm25_b, lsa_dim=args.lsa_dim, rrf_k=args.rrf_k,
+                           depth=args.depth, alpha=args.alpha, batch_size=args.batch_size, cache_dir=args.cache_dir)
+    systems, base, sys_meta = build_systems(args.systems, docs, rcfg, log=lambda m: print(m, flush=True))
+    queries = [f"{split.titles[q.paper_id]}. {q.question}" if args.title_query else q.question for q in questions]
+    t = time.time()
+    prime_queries(base, queries)
+    sys_meta["query_encode_seconds"] = round(time.time() - t, 2)
     per_query: dict[str, list[dict]] = {name: [] for name in systems}
+    search_seconds = {}
     for name, sys_ in systems.items():
         t = time.time()
         for q in questions:
             cands = np.array(split.paper_pids[q.paper_id]) if args.setting == "within_paper" else None
             query = f"{split.titles[q.paper_id]}. {q.question}" if args.title_query else q.question
             ranked = [d for d, _ in sys_.search(query, k=20, candidates=cands)]
-            per_query[name].append({"qid": q.qid, **all_metrics(ranked, q.gold_union)})
-        print(f"  searched {name} in {time.time() - t:.1f}s", flush=True)
-
-    summary = {n: {m: float(np.nanmean([r[m] for r in rows])) for m in rows[0] if m != "qid"}
-               for n, rows in per_query.items()}
+            per_query[name].append({"qid": q.qid, "paper_id": q.paper_id, "n_gold": len(q.gold_union),
+                                    "top5": ranked[:5], **all_metrics(ranked, q.gold_union)})
+        search_seconds[name] = round(time.time() - t, 2)
+        print(f"  searched {name} in {search_seconds[name]:.1f}s", flush=True)
 
     # Significance: each hybrid vs every non-hybrid system, Holm-adjusted per hybrid.
     comparisons = []
@@ -144,16 +99,12 @@ def main(argv=None):
                                                                groups=groups)]
 
     run_id = args.run_name or f"h1_{Path(args.qasper).stem}_{args.setting}_{int(time.time())}"
-    out = Path(args.out) / run_id
-    out.mkdir(parents=True, exist_ok=True)
-    (out / "config.json").write_text(json.dumps({**vars(args), "git": git_rev(), "data_stats": split.stats,
-                                                  "n_questions": len(questions), "primary": primary}, indent=2))
-    (out / "summary.json").write_text(json.dumps(summary, indent=2))
-    (out / "comparisons.json").write_text(json.dumps(comparisons, indent=2))
-    with open(out / "per_query.jsonl", "w") as f:
-        for n, rows in per_query.items():
-            for r in rows:
-                f.write(json.dumps({"system": n, **r}) + "\n")
+    out = write_run(Path(args.out) / run_id,
+                    {**vars(args), "dataset": "QASPER v0.3", "data_stats": split.stats,
+                     "n_questions": len(questions), "n_papers": len(set(groups)), "primary": primary,
+                     "stats": "paper-level cluster bootstrap (10k) + cluster sign-flip randomisation, Holm per hybrid"},
+                    per_query, comparisons, {**sys_meta, "search_seconds": search_seconds})
+    summary = json.loads((out / "summary.json").read_text())
 
     cols = ["recall@1", "recall@5", "recall@10", "mrr@10", "ndcg@10"]
     print(f"\n{'system':<24}" + "".join(f"{c:>11}" for c in cols))
