@@ -59,7 +59,8 @@ def main(argv=None):
 
     rcfg = RetrievalConfig(lsa_dim=args.lsa_dim, rrf_k=args.rrf_k, depth=args.depth, alpha=args.alpha,
                            batch_size=args.batch_size, cache_dir=args.cache_dir)
-    systems, base, meta = build_systems(args.systems, docs, rcfg, log=lambda m: print(m, flush=True))
+    systems, base, meta = build_systems(args.systems, docs, rcfg, log=lambda m: print(m, flush=True),
+                                        queries=[c.claim for c in queries])
     prime_queries(base, [c.claim for c in queries])
 
     per_query, search_seconds = {}, {}

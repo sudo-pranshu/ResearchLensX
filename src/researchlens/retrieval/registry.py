@@ -60,7 +60,9 @@ def components(spec: str) -> list[str]:
     return [spec]
 
 
-def build_systems(specs, docs, cfg: RetrievalConfig, log=print):
+def build_systems(specs, docs, cfg: RetrievalConfig, log=print, queries=None):
+    """If `queries` is given, each neural base system embeds them right after fitting and then
+    releases its model, so at most one transformer is resident at a time (8 GB machines)."""
     cache = EmbeddingCache(cfg.cache_dir)
     base, timings, meta = {}, {}, {}
 
@@ -68,9 +70,12 @@ def build_systems(specs, docs, cfg: RetrievalConfig, log=print):
         if n not in base:
             t = time.time()
             base[n] = make_base(n, cfg, cache).fit(docs)
-            timings[n] = round(time.time() - t, 2)
             enc = getattr(base[n], "encoder", None)
             meta[n] = getattr(enc, "meta", {"model": n})
+            if queries is not None and n in NEURAL_NAMES:
+                base[n].prime_queries(list(queries))
+                base[n].release()
+            timings[n] = round(time.time() - t, 2)
             log(f"  fitted {n} in {timings[n]:.1f}s")
         return base[n]
 

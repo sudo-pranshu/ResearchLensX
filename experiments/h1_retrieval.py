@@ -106,8 +106,9 @@ def main(argv=None):
 
     rcfg = RetrievalConfig(bm25_k1=args.bm25_k1, bm25_b=args.bm25_b, lsa_dim=args.lsa_dim, rrf_k=args.rrf_k,
                            depth=args.depth, alpha=args.alpha, batch_size=args.batch_size, cache_dir=args.cache_dir)
-    systems, base, sys_meta = build_systems(args.systems, docs, rcfg, log=lambda m: print(m, flush=True))
     queries = [f"{split.titles[q.paper_id]}. {q.question}" if args.title_query else q.question for q in questions]
+    systems, base, sys_meta = build_systems(args.systems, docs, rcfg, log=lambda m: print(m, flush=True),
+                                            queries=queries)
     t = time.time()
     prime_queries(base, queries)
     sys_meta["query_encode_seconds"] = round(time.time() - t, 2)

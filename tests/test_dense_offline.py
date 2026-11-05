@@ -71,3 +71,12 @@ def test_write_run_outputs(tmp_path):
     out = write_run(tmp_path / "run", {"x": 1}, pq, [{"system_a": "a", "delta": 0.1}])
     for f in ["config.json", "summary.json", "summary.csv", "comparisons.json", "comparisons.csv", "per_query.jsonl"]:
         assert (out / f).exists()
+
+
+def test_release_after_priming():
+    r = DenseRetriever(FakeEncoder(), use_faiss=False).fit(DOCS)
+    r.prime_queries(["alpha"])
+    r.release()
+    assert r.search("alpha", 1)
+    with pytest.raises(KeyError):
+        r.search("never primed", 1)
