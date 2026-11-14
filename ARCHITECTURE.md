@@ -98,3 +98,33 @@ notebooks/      # Colab drivers (thin: clone repo, run scripts, save to Drive)
 | NLI zero-shot on SciFact dev (~300 claims) | CPU acceptable | `results/h2/` |
 | Optional NLI fine-tune on SciFact train | Colab GPU | Drive checkpoint + model card |
 | LLM generation for H2 | Colab GPU | `results/h2/generations_*.jsonl` (committed) |
+
+## 7. Product layer (added 2026-11-14)
+
+```mermaid
+flowchart LR
+  PDF[(PDFs)] --> ING[PyMuPDFIngestor<br/>pages, sections, references]
+  ING --> STORE[(CorpusStore<br/>SQLite)]
+  STORE --> WS[Workspace service]
+  WS --> RET[ChunkIndex<br/>BM25/TF-IDF + dedup + section filter<br/>optional cross-encoder rerank]
+  RET --> QA[MultiDocQA<br/>balance papers, references, abstention]
+  QA --> VER[NLIVerifier<br/>status, explanation, calibrated confidence]
+  STORE --> KG[GraphBuilder<br/>extraction with provenance]
+  VER -. gated NLI links .-> KG
+  KG --> CMP[comparison table]
+  KG --> GAPS[find_gaps]
+  CMP & GAPS --> REV[Review: MD / HTML / PDF]
+  WS --> APP[Streamlit app]
+```
+
+| Module | Role | Notable guarantees |
+|---|---|---|
+| `ingestion/pymupdf_ingestor.py` | PDF → `Document` | page of every paragraph; scanned PDFs rejected |
+| `store/corpus.py` | persistent library | duplicate-safe, thread-safe, schema-checked |
+| `retrieval/rerank.py`, `postprocess.py` | rerank, redundancy suppression, section filter | filters applied before ranking |
+| `qa/engine.py` | multi-document QA | every sentence cites passages with page; abstains visibly |
+| `verification/nli.py`, `evaluation/calibration.py` | claim status, explanation, calibration | labels use raw probabilities; confidence calibrated |
+| `knowledge_graph/` | graph with provenance | no edge without evidence; mock verifier cannot create relations |
+| `analysis/{compare,gaps,review}.py` | comparison, gaps, review export | collection-scoped; no novelty claims; every statement cited |
+| `workspace.py` | the only entry point for the app | reports real / fallback / MOCK per component |
+| `app/` | Streamlit UI | MOCK banner; errors and empty states handled |
