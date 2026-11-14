@@ -3,6 +3,8 @@
 Format: date · type (added / changed / interface / fixed / result) · description.
 
 ## 2026-11-05 (Day 1)
+- interface · schema 1.2 (additive): `VerificationResult.support` (direct/combined) and `.explanation`
+- added · `qa/engine.py` MultiDocQA (cross-paper balancing, references with page/section, coverage abstention, claim status: supported/inferred/conflicting/contradicted/unsupported), `NLIVerifier(combine=, temperature=)` + deterministic explanations, `evaluation/calibration.py`; EXP-H1-007, EXP-QA-001, EXP-H2-003
 - added · cross-encoder reranker (`retrieval/rerank.py`, spec `rerank:<spec>`), redundancy suppression and section filters (`retrieval/postprocess.py`), `ChunkIndex.search(where=, dedup_threshold=)`, `Pipeline.ask(where=)`, `build_default_pipeline(rerank=, dedup_threshold=)`; 8 offline tests
 - added · `store/corpus.py` SQLite corpus store (dedupe by doc_id, batch ingest with per-file failure report, metadata filters on year/title/ids, schema-version guard) + 7 tests
 - interface · schema 1.1 (additive): `Section.pages`, `Chunk.page` for page-level citations; `chunk_document` propagates the start page

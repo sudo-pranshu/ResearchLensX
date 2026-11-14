@@ -1,0 +1,27 @@
+{
+  "n_pairs": 340,
+  "n_claims": 300,
+  "temperature_all_dev": 2.244,
+  "temperature_per_fold": [
+    2.201,
+    2.123,
+    2.286,
+    2.394,
+    2.23
+  ],
+  "raw": {
+    "ece": 0.1831,
+    "nll": 0.9397,
+    "accuracy": 0.6971
+  },
+  "calibrated_out_of_fold": {
+    "ece": 0.0672,
+    "nll": 0.7206,
+    "accuracy": 0.6971
+  },
+  "ece_change_ci95": [
+    -0.1541,
+    -0.0592
+  ],
+  "note": "passage-level V probabilities from EXP-H2-001; probabilities rounded to 4 decimals in that artefact"
+}

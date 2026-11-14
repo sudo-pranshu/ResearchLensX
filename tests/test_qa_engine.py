@@ -62,10 +62,32 @@ def test_abstains_when_evidence_does_not_cover_question():
 def test_claim_status_and_mock_flag_propagate():
     res = make(verifier=MockVerifier()).answer("which datasets are used for evaluation on SciFact", k=3)
     assert res.is_mock is True                                # mock verifier => visible mock flag
-    assert {s.status for s in res.sentences} <= {"supported", "unsupported", "contradicted"}
+    assert {s.status for s in res.sentences} <= {"supported", "unsupported", "contradicted", "conflicting", "inferred"}
 
 
 def test_doc_filter_and_coverage():
     res = make().answer("which datasets are used for evaluation", k=3, doc_ids=["B"], verify=False)
     assert {r.doc_id for r in res.references} == {"B"}
     assert evidence_coverage("", []) == 0.0
+
+
+def test_conflicting_and_inferred_statuses():
+    import numpy as np
+    from researchlens.verification.nli import NLIVerifier
+
+    def scorer(prem, hyp):
+        return np.array([[0.9, 0.05, 0.05] if "supports" in p else [0.05, 0.9, 0.05] if "refutes" in p else [0.1, 0.1, 0.8] for p in prem])
+    d1 = doc("X", "X paper", ["This result supports the claim about dense retrieval datasets."], pages=[1])
+    d2 = doc("Y", "Y paper", ["This result refutes the claim about dense retrieval datasets."], pages=[2])
+    from researchlens.contracts import Answer, AnswerSentence
+
+    class BothCited:
+        name, is_mock = "stub", False
+        def generate(self, question, passages):
+            return Answer(question=question, passages=passages, mode="rag", generator="stub",
+                          sentences=[AnswerSentence(text="The papers disagree about the claim.", citations=[0, 1])])
+    pipe = build_default_pipeline([d1, d2])
+    qa = MultiDocQA(pipe.retriever, BothCited(), [d1, d2], NLIVerifier(scorer, granularity="sentence"))
+    res = qa.answer("claim about dense retrieval datasets", k=2, max_per_doc=1)
+    assert [s.status for s in res.sentences] == ["conflicting"] and res.sentences[0].ref_ids == [1, 2]
+    assert not res.is_mock

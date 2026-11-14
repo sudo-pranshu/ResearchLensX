@@ -78,13 +78,14 @@ class NLIVerifier:
 
     def __init__(self, scorer: Scorer, granularity: str = "sentence", support_threshold: float = 0.5,
                  contradict_threshold: float = 0.5, sentence_splitter=None, name: str | None = None,
-                 combine: bool = False, combine_top: int = 3):
+                 combine: bool = False, combine_top: int = 3, temperature: float = 1.0):
         if granularity not in ("passage", "sentence"):
             raise ValueError("granularity must be 'passage' or 'sentence'")
         from researchlens.generation.extractive import split_sentences
         self.scorer, self.granularity = scorer, granularity
         self.ts, self.tc = support_threshold, contradict_threshold
         self.split = sentence_splitter or split_sentences
+        self.temperature = temperature       # reporting only: labels use raw probabilities (thresholds were tuned on them)
         self.combine, self.combine_top = combine, combine_top      # multi-evidence support (sentence granularity only)
         self.name = name or f"nli:{getattr(scorer, 'name', 'scorer')}:{granularity}"
 
@@ -131,10 +132,16 @@ class NLIVerifier:
     def verify(self, claim: Claim, passages: list[RetrievedPassage]) -> VerificationResult:
         rows = self._score(claim.text, [p.chunk.text for p in passages]) if passages else []
         judged = self._judge_rows(rows)
+        label, conf = self.aggregate(judged)
+        if self.temperature != 1.0:       # calibrate the REPORTED confidence/probabilities; decisions stay on raw probs
+            from researchlens.evaluation.calibration import apply_temperature
+            judged_cal = [(l, apply_temperature(p[None, :], self.temperature)[0], r) for l, p, r in judged]
+            _, conf = self.aggregate(judged_cal)
+        else:
+            judged_cal = judged
         evidence = [EvidenceJudgement(chunk_id=p.chunk.chunk_id, label=l,
                                       probs={v: float(x) for v, x in zip(VERDICTS, probs)}, rationale_sentences=r)
-                    for p, (l, probs, r) in zip(passages, judged)]
-        label, conf = self.aggregate(judged)
+                    for p, (l, probs, r) in zip(passages, judged_cal)]
         support, combined_ids = None, []
         if label == "SUPPORTS":
             support = "direct"

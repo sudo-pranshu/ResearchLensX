@@ -13,8 +13,9 @@ What it adds on top of Pipeline.ask:
     the signal has AUROC 0.64 for unanswerability (EXP-QA-001), so the default is deliberately low (0.2).
     The real insufficient-evidence check is claim verification: sentences the verifier cannot support are
     labelled "unsupported".
-  * claim status per sentence (when a verifier is supplied): supported / contradicted / unsupported.
-    "Reasonable inference" is NOT claimed here: single-passage NLI cannot establish it.
+  * claim status per sentence (when a verifier is supplied): supported (one passage entails it), inferred
+    (only several passages jointly entail it; needs NLIVerifier(combine=True)), conflicting (passages disagree),
+    contradicted, unsupported. Statuses come from one NLI model and are evidence, not scientific truth.
 
 Nothing is invented: sentences come from the injected generator and cite only passages it was given.
 """
@@ -28,7 +29,7 @@ from researchlens.contracts import Answer, AnswerSentence, Claim, Document, Retr
 from researchlens.retrieval.lexical import tokenize
 
 ABSTAIN_TEXT = "The uploaded papers do not contain enough evidence to answer this question."
-Status = str   # "supported" | "contradicted" | "unsupported" | "unchecked" | "abstained"
+Status = str   # "supported" | "inferred" | "conflicting" | "contradicted" | "unsupported" | "unchecked" | "abstained"
 
 
 class Reference(BaseModel):
@@ -126,7 +127,13 @@ class MultiDocQA:
                 cited = [ans.passages[c - 1] for c in ids] or ans.passages
                 v = self.verifier.verify(Claim(claim_id=f"a{i}", text=s.text, source="answer"), cited)
                 s.verification = v
-                st = {"SUPPORTS": "supported", "CONTRADICTS": "contradicted"}.get(v.label, "unsupported")
+                labels = {e.label for e in v.evidence}
+                if {"SUPPORTS", "CONTRADICTS"} <= labels:
+                    st = "conflicting"                       # different passages disagree about this sentence
+                elif v.label == "SUPPORTS":
+                    st = "inferred" if v.support == "combined" else "supported"
+                else:
+                    st = {"CONTRADICTS": "contradicted"}.get(v.label, "unsupported")
                 statuses.append(SentenceStatus(text=s.text, ref_ids=ids, status=st, confidence=v.confidence))
             else:
                 statuses.append(SentenceStatus(text=s.text, ref_ids=ids, status="unchecked"))
