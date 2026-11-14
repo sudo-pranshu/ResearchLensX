@@ -3,6 +3,8 @@
 Format: date · type (added / changed / interface / fixed / result) · description.
 
 ## 2026-11-05 (Day 1)
+- interface · schema 1.3 (additive): graph node types author/finding/limitation, edge types authored_by/uses_method/evaluates_on/uses_metric/reports_finding/has_limitation/similar_problem
+- added · knowledge graph (`knowledge_graph/extract.py`, `builder.py`): provenance on every element, reference-matched `cites`, TF-IDF `similar_problem`, shared-entity edges, gated NLI supports/contradicts (candidates, mock never creates edges); app page with pyvis view and node inspector; EXP-KG-001 audit
 - added · Streamlit app (`app/`): Library (upload, duplicates/failures reported), Ask (cited extractive answers, page-level references, abstention, claim-status pills), Search (retriever comparison), Verify a claim (NLI + explanation), Evaluation (committed results); `workspace.py` service layer with visible fallbacks and MOCK banner; `Document.abstract_page`; thread-safe `CorpusStore`; 29 new tests
 - fixed · found by running the app: SQLite cross-thread error under Streamlit reruns; extractive generator preferred figure/table captions
 - interface · schema 1.2 (additive): `VerificationResult.support` (direct/combined) and `.explanation`

@@ -39,7 +39,7 @@ def test_empty_library_shows_guidance(tmp_path, monkeypatch):
 def test_every_page_renders_with_library(app_with_library):
     at = app_with_library()
     assert not at.exception
-    for page in ("Library", "Ask", "Search", "Verify a claim", "Evaluation"):
+    for page in ("Library", "Ask", "Search", "Verify a claim", "Knowledge graph", "Evaluation"):
         go(at, page)
         assert not at.exception, (page, [e.value for e in at.exception])
 

@@ -16,7 +16,7 @@ from typing import Literal, Protocol, Sequence, runtime_checkable
 
 from pydantic import BaseModel, Field
 
-SCHEMA_VERSION = "1.2"   # 1.1: page provenance (Section.pages, Chunk.page); 1.2: VerificationResult.support/explanation, Document.abstract_page
+SCHEMA_VERSION = "1.3"   # 1.1: page provenance (Section.pages, Chunk.page); 1.2: VerificationResult.support/explanation, Document.abstract_page; 1.3: graph node/edge types
 
 # Verification label set. Mapping from SciFact: SUPPORT->SUPPORTS, CONTRADICT->CONTRADICTS, NEI->INSUFFICIENT.
 Verdict = Literal["SUPPORTS", "CONTRADICTS", "INSUFFICIENT"]
@@ -119,15 +119,17 @@ class Answer(BaseModel):
 
 
 # ---------------------------------------------------------------- knowledge graph
-NodeType = Literal["paper", "section", "entity", "claim"]
-EdgeType = Literal["has_section", "mentions", "cites", "supports", "contradicts", "shares_entity"]
+NodeType = Literal["paper", "section", "entity", "claim", "author", "finding", "limitation"]
+EdgeType = Literal["has_section", "mentions", "cites", "supports", "contradicts", "shares_entity",
+                   "authored_by", "uses_method", "evaluates_on", "uses_metric", "reports_finding", "has_limitation",
+                   "similar_problem"]
 
 
 class KGNode(BaseModel):
     id: str
     type: NodeType
     label: str
-    attrs: dict = Field(default_factory=dict)     # entity nodes: {"entity_type": "dataset"|"method"|"metric"|"task"}
+    attrs: dict = Field(default_factory=dict)     # every extracted node/edge carries attrs["evidence"] = [{doc_id, chunk_id, section, page, quote}]; entity nodes: {"entity_type": "dataset"|"method"|"metric"|"task"}
 
 
 class KGEdge(BaseModel):

@@ -19,7 +19,7 @@ Tests: `pytest -q` → **40 passed** (4.2 s, CPU, offline). Nothing below is cla
 | Claim verification (NLI) | **Done on benchmark** | `verification/nli.py` (DeBERTa-v3 + roberta-large-mnli judge), EXP-H2-001 SciFact macro-F1 .596–.681; no calibration, no multi-evidence aggregation beyond max-pool; no natural-language explanations |
 | Verified-RAG reviser | **Done, result inconclusive** | `generation/verified.py`, EXP-H2-002 (generator emits 0.15 citations/answer → confounded) |
 | PDF ingestion | **Implemented 2026-11-14, tested on synthetic PDFs and 5 real arXiv PDFs; reference splitting approximate** | `ingestion/pymupdf_ingestor.py`, `tests/test_ingestion.py` |
-| Knowledge graph | **Missing (stub)** | `knowledge_graph/builder.py`; `networkx` installed, `pyvis` not |
+| Knowledge graph | **Implemented 2026-11-14** (rule-based extraction, provenance, interactive view; NLI links are gated candidates) | `knowledge_graph/`, app page |
 | Research-gap engine | **Missing** (no module, no design doc) | — |
 | Literature-review / report generator + export | **Missing** | — |
 | Frontend (Streamlit) / FastAPI | **Missing** (`app/` has only a README); `streamlit`, `fitz` import-fail | — |

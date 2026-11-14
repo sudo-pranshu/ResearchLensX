@@ -93,3 +93,41 @@ def sentence_spans(passage_text: str, rationale_idx: list[int]) -> list[str]:
 
 def clean_title(title: str) -> str:
     return re.sub(r"\s+", " ", title).strip()
+
+
+NODE_STYLE = {   # type -> (colour, shape)
+    "paper": ("#2F6FED", "dot"), "author": ("#8e6bd1", "triangle"), "finding": ("#1a9850", "square"),
+    "limitation": ("#d73027", "diamond"), "claim": ("#e08a00", "star"), "section": ("#7a7f87", "dot"),
+    "entity:method": ("#00a3a3", "dot"), "entity:dataset": ("#e08a00", "database"), "entity:metric": ("#a0a4ab", "dot"),
+}
+
+
+def node_key(n) -> str:
+    return f"entity:{n.attrs.get('entity_type', 'method')}" if n.type == "entity" else n.type
+
+
+def graph_html(kg, node_types: set[str], edge_types: set[str], height: int = 620) -> str:
+    """pyvis network (all JS inlined: works offline). Tooltips carry the source quote and page of each element."""
+    from pyvis.network import Network
+    net = Network(height=f"{height}px", width="100%", directed=True, cdn_resources="in_line", bgcolor="rgba(0,0,0,0)")
+    net.barnes_hut(gravity=-6000, central_gravity=0.25, spring_length=140)
+    keep = set()
+    for n in kg.nodes:
+        k = node_key(n)
+        if k not in node_types:
+            continue
+        colour, shape = NODE_STYLE.get(k, ("#7a7f87", "dot"))
+        ev = (n.attrs.get("evidence") or [{}])[0]
+        tip = html.escape(n.label) + (f"<br><i>{html.escape(str(ev.get('quote', ''))[:260])}</i><br>p. {ev.get('page')}" if ev.get("quote") else "")
+        size = 26 if n.type == "paper" else 14 + min(len(n.attrs.get("papers", [])), 3) * 3
+        net.add_node(n.id, label=n.label[:34], title=tip, color=colour, shape=shape, size=size)
+        keep.add(n.id)
+    for e in kg.edges:
+        if e.type in edge_types and e.source in keep and e.target in keep:
+            ev = (e.attrs.get("evidence") or [{}])[0]
+            tip = e.type + (f": {html.escape(str(ev.get('quote', ''))[:260])} (p. {ev.get('page')})" if ev.get("quote") else "")
+            colour = {"contradicts": "#d73027", "supports": "#1a9850"}.get(e.type, "#9aa0a6")
+            net.add_edge(e.source, e.target, title=tip, label=e.type.replace("_", " "), color=colour,
+                         width=1 + min(e.weight, 5) * 0.4 if e.type in ("similar_problem", "shares_entity", "supports", "contradicts") else 1,
+                         font={"size": 9, "color": "#888"}, arrows="to")
+    return net.generate_html()

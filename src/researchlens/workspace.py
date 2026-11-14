@@ -138,6 +138,23 @@ class Workspace:
         v = self.verifier().verify(Claim(claim_id="user", text=claim, source="user"), passages)
         return v, passages
 
+    def graph(self, s: Settings, doc_ids: Sequence[str] | None = None, link_with_nli: bool = False, min_mentions: int = 2):
+        """Knowledge graph of the selected papers. `link_with_nli` adds verified supports/contradicts edges between
+        a paper's findings and other papers (needs the real NLI model; a mock never creates edges)."""
+        from researchlens.knowledge_graph.builder import GraphBuilder
+        docs = self.store.documents(doc_ids)
+        if not docs:
+            raise ValueError("The library is empty: upload at least one PDF first.")
+        key = ("graph", tuple(d.doc_id for d in docs), link_with_nli, min_mentions)
+        if key not in self._engines:
+            builder = GraphBuilder(min_mentions=min_mentions)
+            if link_with_nli:
+                qa, _ = self.engine(s, doc_ids)
+                self._engines[key] = (builder.build(docs, verifier=self.verifier(), index=qa.index), None)
+            else:
+                self._engines[key] = (builder.build(docs), None)
+        return self._engines[key][0]
+
     def status(self, s: Settings | None = None) -> list[ComponentStatus]:
         s = s or Settings()
         out = [ComponentStatus("Ingestion", "real", "PyMuPDF (text PDFs only; no OCR)"),

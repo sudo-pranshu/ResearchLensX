@@ -31,7 +31,7 @@ def get_workspace(db_path: str) -> Workspace:
 
 
 ws = get_workspace(DB)
-PAGES = ["Library", "Ask", "Search", "Verify a claim", "Evaluation"]
+PAGES = ["Library", "Ask", "Search", "Verify a claim", "Knowledge graph", "Evaluation"]
 
 # ------------------------------------------------------------------ sidebar
 with st.sidebar:
@@ -200,6 +200,46 @@ elif page == "Verify a claim":
                 probs = " · ".join(f"{k[:3]} {x:.2f}" for k, x in e.probs.items())
                 C.evidence_card(ref, C.sentence_spans(p.chunk.text, e.rationale_sentences),
                                 extra=f"· {C.pill(e.label)} {probs}")
+
+# ------------------------------------------------------------------ Knowledge graph
+elif page == "Knowledge graph":
+    st.header("Knowledge graph")
+    st.write("Papers, authors, methods, datasets, metrics, findings and limitations extracted from the PDFs. Every node and edge "
+             "keeps the sentence and page it came from (hover, or inspect below). Relations are extracted or measured, never invented; "
+             "extraction is rule-based and imperfect.")
+    if not need_library():
+        link = st.toggle("Verify cross-paper relations with NLI (slow; adds supports / contradicts edges)", value=False,
+                         help="Checks each paper's findings against the other papers' passages with the real NLI model. A mock model never adds edges.")
+        try:
+            with st.spinner("Building graph…" + (" running NLI between papers…" if link else "")):
+                kg = ws.graph(settings, doc_ids, link_with_nli=link)
+        except Exception as e:
+            st.error(f"Could not build the graph: {type(e).__name__}: {e}")
+            st.stop()
+        if link and ws.status(settings)[-1].state == "mock":
+            st.warning("The NLI model could not be loaded, so no supports/contradicts edges were created (a MOCK never adds relations).")
+        all_nodes = list(C.NODE_STYLE)
+        default_nodes = ["paper", "entity:method", "entity:dataset", "entity:metric"]
+        nt = set(st.multiselect("Node types", all_nodes, default=default_nodes))
+        et_all = sorted({e.type for e in kg.edges})
+        et = set(st.multiselect("Relations", et_all, default=[e for e in et_all if e not in ("reports_finding", "has_limitation", "authored_by")]))
+        from collections import Counter as _C
+        st.caption(" · ".join(f"{k}: {v}" for k, v in sorted(_C(C.node_key(n) for n in kg.nodes).items())) + "  |  "
+                   + " · ".join(f"{k}: {v}" for k, v in sorted(_C(e.type for e in kg.edges).items())))
+        import streamlit.components.v1 as components
+        components.html(C.graph_html(kg, nt, et), height=640, scrolling=False)
+        C.section_head("Inspect a node")
+        by_id = {n.id: n for n in kg.nodes}
+        pick = st.selectbox("Node", list(by_id), format_func=lambda i: f"[{C.node_key(by_id[i])}] {by_id[i].label[:90]}")
+        n = by_id[pick]
+        st.markdown(f"**{n.label}**")
+        for ev in n.attrs.get("evidence", []):
+            st.markdown(f"> {ev.get('quote') or ev.get('source')}  \n<span class='rl-meta'>{ev.get('doc_id', '')} · {ev.get('section', '')} · "
+                        f"p. {ev.get('page') if ev.get('page') is not None else 'unknown'}</span>", unsafe_allow_html=True)
+        rel = [e for e in kg.edges if pick in (e.source, e.target)]
+        if rel:
+            st.dataframe([{"relation": e.type, "from": by_id[e.source].label[:50], "to": by_id[e.target].label[:50], "weight": round(e.weight, 2),
+                           "evidence": (e.attrs.get("evidence") or [{}])[0].get("quote", "")[:160]} for e in rel], hide_index=True, use_container_width=True)
 
 # ------------------------------------------------------------------ Evaluation
 else:
