@@ -177,3 +177,16 @@ def test_searches_during_an_upload_never_see_a_half_indexed_document_and_nothing
     stop.set(); [t.join(10) for t in ts]
     assert not errors, errors
     assert ws.jobs.get(job.id).state == "ready" and ws.store.count("ready") == 2
+
+
+def test_parser_works_when_the_parent_main_module_is_not_a_file(tmp_path, pdf):
+    """Regression (found by the clean-clone acceptance test): multiprocessing 'spawn' re-imports the parent's __main__ and fails for
+    `python -`, `python -c` or notebooks. The parser now runs as `python -m researchlens.parse_worker`."""
+    import subprocess
+    import sys
+    (tmp_path / "x.pdf").write_bytes(pdf)
+    code = ("from researchlens.parse_worker import parse_pdf\n"
+            f"r = parse_pdf({str(tmp_path / 'x.pdf')!r}, 400, 60)\n"
+            "print('OK' if r.ok and 'Hybrid Evidence Retrieval' in r.document_json else 'FAIL ' + str(r.error))\n")
+    out = subprocess.run([sys.executable, "-"], input=code, capture_output=True, text=True, timeout=120)
+    assert out.stdout.strip().endswith("OK"), out.stdout + out.stderr
