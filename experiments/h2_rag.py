@@ -66,6 +66,7 @@ def main(argv=None):
     ap.add_argument("--k", type=int, default=5)
     ap.add_argument("--generator", default="Qwen/Qwen2.5-1.5B-Instruct")
     ap.add_argument("--max-new-tokens", type=int, default=160)
+    ap.add_argument("--prompt", choices=["zero_shot", "one_shot"], default="zero_shot", help="prompt style (one_shot adds a citation-format example)")
     ap.add_argument("--verifier", default="MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli")
     ap.add_argument("--verifier-granularity", default="sentence")
     ap.add_argument("--support-threshold", type=float, default=0.5)
@@ -113,7 +114,7 @@ def main(argv=None):
         for line in gen_path.read_text().splitlines():
             r = json.loads(line)
             cache[(r["qid"], r["prompt_hash"])] = r["raw"]
-    need = [q for q in qs if (q.qid, prompt_hash(build_messages(q.question, retrieved[q.qid]))) not in cache]
+    need = [q for q in qs if (q.qid, prompt_hash(build_messages(q.question, retrieved[q.qid], style=args.prompt))) not in cache]
     t = time.time()
     if need:
         from researchlens.generation.llm_rag import HFChatLLM
@@ -121,7 +122,7 @@ def main(argv=None):
         models["generator"] = llm.meta
         with open(gen_path, "a") as f:
             for i, q in enumerate(need):
-                msgs = build_messages(q.question, retrieved[q.qid])
+                msgs = build_messages(q.question, retrieved[q.qid], style=args.prompt)
                 t0 = time.time()
                 raw = llm(msgs)
                 rec = {"qid": q.qid, "paper_id": q.paper_id, "prompt_hash": prompt_hash(msgs), "raw": raw,
@@ -137,7 +138,7 @@ def main(argv=None):
     timings["generation_s"] = round(time.time() - t, 1)
     gen = LLMRAGGenerator(llm=None, name=f"rag:{args.generator}")
     answers = {"rag": {q.qid: gen.generate(q.question, retrieved[q.qid],
-                                           raw=cache[(q.qid, prompt_hash(build_messages(q.question, retrieved[q.qid])))])
+                                           raw=cache[(q.qid, prompt_hash(build_messages(q.question, retrieved[q.qid], style=args.prompt)))])
                        for q in qs}}
 
     # ---- 3. verification conditions ----------------------------------------------------------

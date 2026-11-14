@@ -83,3 +83,15 @@ def test_citation_judge_alce_semantics():
 def test_answer_f1():
     assert token_f1("The SQuAD dataset", "SQuAD dataset") == 1.0
     assert answer_f1("BERT", ["RoBERTa", "BERT"]) == 1.0
+
+
+def test_one_shot_prompt_adds_citation_example_and_changes_hash():
+    from researchlens.generation.llm_rag import build_messages, prompt_hash
+    ps = _passages(["alpha beta", "gamma delta"]) if "_passages" in globals() else None
+    if ps is None:
+        from researchlens.contracts import Chunk, RetrievedPassage
+        ps = [RetrievedPassage(chunk=Chunk(chunk_id=f"c{i}", doc_id="d", section="S", text=t, order=i), score=1, rank=i + 1, retriever="t")
+              for i, t in enumerate(["alpha beta", "gamma delta"])]
+    zs, os_ = build_messages("q?", ps), build_messages("q?", ps, style="one_shot")
+    assert len(os_) == len(zs) + 2 and os_[-2]["role"] == "assistant" and "[1]" in os_[-2]["content"]
+    assert prompt_hash(zs) != prompt_hash(os_) and os_[-1] == zs[-1]

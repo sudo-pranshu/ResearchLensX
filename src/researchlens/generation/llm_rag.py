@@ -26,10 +26,21 @@ _CITE = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
 _ABSTAIN_RE = re.compile(r"(do(es)? not|don't) (contain|provide|mention|include)|not enough information|cannot be determined|no information", re.I)
 
 
-def build_messages(question: str, passages: list[RetrievedPassage], max_chars: int = 1200) -> list[dict]:
+ONE_SHOT = [
+    {"role": "user", "content": "Passages:\n[1] (Methods) We evaluate the encoder on the XYZ dataset using F1.\n\n"
+                                "[2] (Results) The encoder reaches 85 F1, 3 points above the baseline.\n\n"
+                                "Question: Which dataset is used and what score is reached?\nAnswer:"},
+    {"role": "assistant", "content": "The encoder is evaluated on the XYZ dataset [1]. It reaches 85 F1, 3 points above the baseline [2]."},
+]
+
+
+def build_messages(question: str, passages: list[RetrievedPassage], max_chars: int = 1200, style: str = "zero_shot") -> list[dict]:
+    """style="one_shot" prepends one worked example showing the [n] citation format (added after EXP-H2-002 showed a
+    1.5B model almost never cited under the zero-shot prompt). Both RAG conditions always share one prompt style."""
     blocks = [f"[{i}] ({p.chunk.section}) {p.chunk.text[:max_chars]}" for i, p in enumerate(passages, 1)]
     user = "Passages:\n" + "\n\n".join(blocks) + f"\n\nQuestion: {question}\nAnswer:"
-    return [{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}]
+    shots = ONE_SHOT if style == "one_shot" else []
+    return [{"role": "system", "content": SYSTEM}, *shots, {"role": "user", "content": user}]
 
 
 def prompt_hash(messages: list[dict]) -> str:
