@@ -2,6 +2,7 @@
 
   v1  documents table of the original scaffold (kept so existing library files open)
   v2  documents scoped by workspace (PRIMARY KEY (workspace, doc_id)), status/error and file columns
+  v3  jobs table (ingestion jobs: state machine, progress, error, idempotency key)
 
 A database that predates versioning (user_version 0 but a `documents` table present) is treated as v1 and upgraded in place;
 every row is preserved. Each migration runs inside one transaction: a failure leaves the previous version untouched.
@@ -40,7 +41,19 @@ CREATE INDEX idx_documents_status ON documents(workspace, status);
 PRAGMA user_version = 2;
 """
 
-MIGRATIONS: list[tuple[int, str]] = [(1, V1), (2, V2)]
+V3 = """
+CREATE TABLE jobs (
+  id TEXT PRIMARY KEY, workspace TEXT NOT NULL, kind TEXT NOT NULL,
+  state TEXT NOT NULL, stage TEXT, progress REAL NOT NULL DEFAULT 0,
+  filename TEXT, pending_key TEXT, doc_id TEXT, outcome TEXT, error TEXT,
+  attempts INTEGER NOT NULL DEFAULT 0, idempotency_key TEXT,
+  created_at REAL NOT NULL, started_at REAL, finished_at REAL);
+CREATE INDEX idx_jobs_ws_state ON jobs(workspace, state, created_at);
+CREATE UNIQUE INDEX idx_jobs_idem ON jobs(workspace, idempotency_key) WHERE idempotency_key IS NOT NULL;
+PRAGMA user_version = 3;
+"""
+
+MIGRATIONS: list[tuple[int, str]] = [(1, V1), (2, V2), (3, V3)]
 LATEST = MIGRATIONS[-1][0]
 
 

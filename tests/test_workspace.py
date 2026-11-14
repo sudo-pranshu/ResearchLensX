@@ -134,8 +134,8 @@ def test_concurrent_ask_with_and_without_verification_never_interfere(ws, monkey
 def test_every_model_touching_call_runs_on_the_inference_thread(ws):
     import threading
     seen = []
-    orig = ws._search
-    ws._search = lambda *a, **k: (seen.append(threading.get_ident()), orig(*a, **k))[1]
+    orig = ws.search_service._search
+    ws.search_service._search = lambda *a, **k: (seen.append(threading.get_ident()), orig(*a, **k))[1]
     ws.search("fusion", Settings()); ws.search("ranked lists", Settings())
     assert len(set(seen)) == 1 and seen[0] != threading.get_ident()
 

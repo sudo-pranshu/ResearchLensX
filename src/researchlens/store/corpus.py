@@ -25,6 +25,7 @@ from researchlens.contracts import SCHEMA_VERSION, Document
 from researchlens.store.migrations import migrate, user_version
 
 STATUSES = ("queued", "parsing", "indexing", "ready", "failed", "cancelled")
+JOB_STATES = STATUSES                 # one state machine for documents and jobs: queued -> parsing -> indexing -> ready / failed / cancelled
 
 
 @dataclass
@@ -41,6 +42,24 @@ class FileInfo:
     pdf_path: str | None = None
     bytes: int | None = None
     pages: int | None = None
+
+
+@dataclass
+class JobInfo:
+    id: str
+    kind: str
+    state: str
+    stage: str | None
+    progress: float
+    filename: str | None
+    pending_key: str | None
+    doc_id: str | None
+    outcome: str | None            # 'added' | 'duplicate' once finished
+    error: str | None
+    attempts: int
+    created_at: float
+    started_at: float | None
+    finished_at: float | None
 
 
 @dataclass
@@ -206,3 +225,74 @@ class CorpusStore:
     def info(self, doc_id: str) -> DocumentInfo | None:
         rows = self.list_documents([doc_id])
         return rows[0] if rows else None
+
+
+    # ------------------------------------------------------------------ jobs (single writer: only the API process calls these)
+    _JOB_COLS = ("id, kind, state, stage, progress, filename, pending_key, doc_id, outcome, error, attempts, created_at, started_at, finished_at")
+
+    def create_job(self, kind: str, filename: str | None = None, pending_key: str | None = None, state: str = "queued",
+                   error: str | None = None, idempotency_key: str | None = None) -> JobInfo:
+        """Create a job, or return the existing one for the same idempotency key (submitting the same upload twice is safe)."""
+        import uuid
+        with self._lock:
+            if idempotency_key:
+                row = self._db.execute(f"SELECT {self._JOB_COLS} FROM jobs WHERE workspace = ? AND idempotency_key = ?",
+                                       (self.workspace, idempotency_key)).fetchone()
+                if row and row[2] in ("queued", "parsing", "indexing"):
+                    return JobInfo(*row)                    # the same upload is already in flight: return that job
+                if row:                                     # a finished job with the same key is superseded by a new one
+                    self._db.execute("UPDATE jobs SET idempotency_key = NULL WHERE id = ?", (row[0],))
+            jid = uuid.uuid4().hex[:12]
+            now = time.time()
+            self._db.execute("INSERT INTO jobs (id, workspace, kind, state, filename, pending_key, error, idempotency_key, created_at, finished_at) "
+                             "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                             (jid, self.workspace, kind, state, filename, pending_key, error, idempotency_key, now,
+                              now if state in ("failed", "cancelled", "ready") else None))
+            self._db.commit()
+        return self.get_job(jid)
+
+    def update_job(self, job_id: str, **fields) -> None:
+        allowed = {"state", "stage", "progress", "doc_id", "outcome", "error", "attempts", "started_at", "finished_at", "pending_key"}
+        bad = set(fields) - allowed
+        if bad or ("state" in fields and fields["state"] not in JOB_STATES):
+            raise ValueError(f"invalid job update: {bad or fields['state']}")
+        if not fields:
+            return
+        with self._lock:
+            self._db.execute(f"UPDATE jobs SET {', '.join(k + ' = ?' for k in fields)} WHERE workspace = ? AND id = ?",
+                             [*fields.values(), self.workspace, job_id])
+            self._db.commit()
+
+    def get_job(self, job_id: str) -> JobInfo | None:
+        with self._lock:
+            row = self._db.execute(f"SELECT {self._JOB_COLS} FROM jobs WHERE workspace = ? AND id = ?", (self.workspace, job_id)).fetchone()
+        return JobInfo(*row) if row else None
+
+    def list_jobs(self, states: Sequence[str] | None = None, limit: int = 200) -> list[JobInfo]:
+        with self._lock:
+            if states:
+                q = f"SELECT {self._JOB_COLS} FROM jobs WHERE workspace = ? AND state IN ({','.join('?' * len(states))}) ORDER BY created_at DESC LIMIT ?"
+                rows = self._db.execute(q, [self.workspace, *states, limit]).fetchall()
+            else:
+                rows = self._db.execute(f"SELECT {self._JOB_COLS} FROM jobs WHERE workspace = ? ORDER BY created_at DESC LIMIT ?",
+                                        (self.workspace, limit)).fetchall()
+        return [JobInfo(*r) for r in rows]
+
+    def requeue_interrupted(self) -> int:
+        """After a crash or restart: jobs that were mid-parse go back to the queue (their original is stored before enqueue)."""
+        with self._lock:
+            cur = self._db.execute("UPDATE jobs SET state = 'queued', stage = NULL, progress = 0 WHERE workspace = ? AND state = 'parsing'",
+                                   (self.workspace,))
+            self._db.commit()
+            return cur.rowcount
+
+    def find_by_sha256(self, sha256: str) -> str | None:
+        with self._lock:
+            row = self._db.execute("SELECT doc_id FROM documents WHERE workspace = ? AND sha256 = ? LIMIT 1", (self.workspace, sha256)).fetchone()
+        return row[0] if row else None
+
+    def delete_job(self, job_id: str) -> bool:
+        with self._lock:
+            cur = self._db.execute("DELETE FROM jobs WHERE workspace = ? AND id = ?", (self.workspace, job_id))
+            self._db.commit()
+            return cur.rowcount == 1
