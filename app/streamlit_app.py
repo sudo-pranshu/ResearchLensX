@@ -31,7 +31,7 @@ def get_workspace(db_path: str) -> Workspace:
 
 
 ws = get_workspace(DB)
-PAGES = ["Library", "Ask", "Search", "Verify a claim", "Knowledge graph", "Evaluation"]
+PAGES = ["Library", "Ask", "Search", "Verify a claim", "Compare papers", "Knowledge graph", "Evaluation"]
 
 # ------------------------------------------------------------------ sidebar
 with st.sidebar:
@@ -200,6 +200,50 @@ elif page == "Verify a claim":
                 probs = " · ".join(f"{k[:3]} {x:.2f}" for k, x in e.probs.items())
                 C.evidence_card(ref, C.sentence_spans(p.chunk.text, e.rationale_sentences),
                                 extra=f"· {C.pill(e.label)} {probs}")
+
+# ------------------------------------------------------------------ Compare papers
+elif page == "Compare papers":
+    st.header("Compare papers")
+    st.write("A side-by-side view built from what was extracted from each PDF (names and verbatim sentences, each with its page). "
+             "*not detected* means the extractor found nothing, not that the paper lacks it.")
+    if not need_library():
+        sel = doc_ids or [i.doc_id for i in ws.library()]
+        if len(sel) < 2:
+            st.info("Select at least two papers in the sidebar scope (or leave it empty to compare all) to compare.")
+        else:
+            from researchlens.analysis.compare import comparison_table, entity_overlap, table_markdown, table_rows_flat
+            try:
+                with st.spinner("Building comparison…"):
+                    kg = ws.graph(settings, sel)
+                    docs_sel = ws.store.documents(sel)
+                    table = comparison_table(kg, docs_sel)
+            except Exception as e:
+                st.error(f"Could not compare: {type(e).__name__}: {e}")
+                st.stop()
+            C.section_head("Comparative methodology table")
+            st.dataframe(table_rows_flat(table), hide_index=True, use_container_width=True)
+            st.download_button("Download as Markdown", table_markdown(table), file_name="comparison.md", mime="text/markdown")
+            C.section_head("Shared and unique entities")
+            ov = entity_overlap(kg)
+            cols = st.columns(3)
+            for col, (kind, label) in zip(cols, (("method", "Methods"), ("dataset", "Datasets"), ("metric", "Metrics"))):
+                col.markdown(f"**{label}**")
+                col.markdown("Shared: " + (", ".join(ov[kind]["shared"]) or "none"))
+                col.markdown("Unique: " + (", ".join(ov[kind]["unique"][:12]) or "none"))
+            C.section_head("Ask the same question of each paper")
+            q = st.text_input("Question", key="cmp_q", placeholder="What evaluation metrics are used?")
+            if q:
+                cols = st.columns(len(sel))
+                for col, d in zip(cols, docs_sel):
+                    with col:
+                        st.markdown(f"**{C.clean_title(d.title)[:60]}**")
+                        res, _ = ws.ask(q, Settings(**{**settings.__dict__, "verify": False, "k": 3, "max_per_doc": 3}), [d.doc_id])
+                        if res.abstained:
+                            st.warning(res.sentences[0].text)
+                        else:
+                            C.cited_answer(res)
+                            for ref in res.references[:3]:
+                                C.evidence_card(ref, [s.text for s in res.sentences if ref.ref_id in s.ref_ids])
 
 # ------------------------------------------------------------------ Knowledge graph
 elif page == "Knowledge graph":
