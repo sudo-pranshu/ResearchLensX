@@ -55,6 +55,12 @@ class ModelManager:
             self.loads[key] = self.loads.get(key, 0) + 1
             return obj
 
+    def register(self, key: str, obj: Any, est_bytes: int = 0) -> None:
+        """Install an already-built instance (tests, or a provider that loads models elsewhere)."""
+        with self._lock:
+            self._items[key] = (obj, est_bytes)
+            self.loads[key] = self.loads.get(key, 0) + 1
+
     def _evict_for(self, incoming: int, keep: str) -> None:
         while self._items and self.resident_bytes() + incoming > self.budget_bytes:
             victim = next(iter(self._items))       # least recently used first

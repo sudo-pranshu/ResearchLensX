@@ -63,8 +63,12 @@ class Workspace:
             root = Path(tempfile.mkdtemp(prefix="rlx-files-")) if str(db_path) == ":memory:" else Path(db_path).parent / "library"
             storage = LocalDocumentStorage(root)
         self.storage = storage
-        from researchlens.retrieval.embedding_cache import EmbeddingCache
-        self.cache = EmbeddingCache(config.embedding_dir if config else None)
+        from researchlens.retrieval.chunk_embeddings import ChunkEmbeddingCache
+        if config is not None:
+            emb_path = config.embedding_dir / "chunks.sqlite"
+        else:
+            emb_path = ":memory:" if str(db_path) == ":memory:" else Path(db_path).parent / "embeddings.sqlite"
+        self.cache = ChunkEmbeddingCache(emb_path)
         self._engines: dict = {}
         self._verifiers: dict[bool, object] = {}
         self._verifier_notes: dict[bool, str] = {}
@@ -121,7 +125,15 @@ class Workspace:
         if ok:
             self.storage.delete(self.workspace, doc_id)
         self._engines.clear()
+        if ok:
+            self.gc_embeddings()
         return ok
+
+    def gc_embeddings(self) -> int:
+        """Sweep embeddings no current chunk needs (content-addressed rows are shared, so deleting a document never deletes them)."""
+        from researchlens.processing.chunking import chunk_document
+        titles_texts = [c.index_text(d.title) for d in self.store.documents() for c in chunk_document(d)]
+        return self.cache.gc([(k, t) for k in self.cache.encoder_keys() for t in titles_texts])
 
     def library(self):
         return self.store.list_documents()
@@ -153,9 +165,11 @@ class Workspace:
         from researchlens.pipeline import build_default_pipeline
         from researchlens.qa.engine import MultiDocQA
 
-        docs = self.store.documents(doc_ids)
+        docs = self.store.documents()                      # ONE index per library; a scope is a candidate filter at query time
         if not docs:
             raise ValueError("The library is empty: upload at least one PDF first.")
+        if doc_ids is not None and not ({d.doc_id for d in docs} & set(doc_ids)):
+            raise ValueError("None of the selected papers is ready for search.")
         key = (tuple(d.doc_id for d in docs), s.retriever, s.rerank, s.dedup)
         with self._engine_lock:
             return self._engine_locked(key, docs, s)
@@ -164,6 +178,10 @@ class Workspace:
         from researchlens.generation.extractive import ExtractiveGenerator
         from researchlens.pipeline import build_default_pipeline
         from researchlens.qa.engine import MultiDocQA
+        # keep only engines of the current library snapshot, and bound the cache (scoped graph caches included)
+        self._engines = {k: v for k, v in self._engines.items() if k[0] == "graph" or k[0] == key[0]}
+        while len(self._engines) >= 16:
+            self._engines.pop(next(iter(self._engines)))
         if key not in self._engines:
             retr, rerank, notes = s.retriever, s.rerank, []
             pipe = None
