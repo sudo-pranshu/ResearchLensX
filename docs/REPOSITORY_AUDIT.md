@@ -10,9 +10,9 @@ Tests: `pytest -q` → **40 passed** (4.2 s, CPU, offline). Nothing below is cla
 | BM25 (from scratch), TF-IDF, LSA | **Done, tested, benchmarked** | `retrieval/lexical.py`, EXP-H1-001/002/006 |
 | Dense (e5-base-v2, SPECTER2, SciBERT), FAISS, embedding cache | **Done, tested, benchmarked** | `retrieval/dense.py`, `embedding_cache.py`, EXP-H1-003/004 |
 | RRF + linear fusion | **Done, benchmarked** | `retrieval/fusion.py`; hybrid does not beat e5 (H1 not supported, EXP-H1-006) |
-| Cross-encoder reranking | **Missing** (no code) | grep: no `rerank` / `cross-encoder` anywhere |
+| Cross-encoder reranking | **Implemented 2026-11-14, unevaluated** | `retrieval/rerank.py` |
 | Metadata-aware filtering | **Partial**: document-level filters (ids, year, title) in `CorpusStore`; not yet exposed in retrieval/UI | `store/corpus.py` |
-| Duplicate/redundant passage suppression | **Missing** | no dedup/MMR |
+| Duplicate/redundant passage suppression | **Implemented** (lexical containment) | `retrieval/postprocess.py` |
 | Document-level vs chunk-level retrieval | Partial | chunk-level only; SciFact is abstract-level in a separate script |
 | Retrieval metrics: Recall@K, nDCG, MRR, paired stats, latency | Mostly done | `evaluation/metrics.py`, `stats.py`; **Precision@K and per-query-category breakdown not verified/absent**; latency is logged per run only |
 | QA over multiple docs with citations | **Partial** | `generation/extractive.py`, `llm_rag.py` (Qwen2.5-1.5B), `Pipeline.ask`; no page numbers (Document model has no page info), no uncertainty/"insufficient evidence" abstention in generator |

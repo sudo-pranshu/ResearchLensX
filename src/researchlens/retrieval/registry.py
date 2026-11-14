@@ -1,6 +1,7 @@
 """Build retrievers from short spec strings, shared by experiments and the pipeline builder.
 
 Specs: bm25 | tfidf | lsa | e5 | bge | scibert | specter2 | rrf:a+b[+c] | linear:lex+dense
+       | rerank:<any of the above>   (cross-encoder over the first-stage top `rerank_depth`)
 Base systems are fitted once and shared by every hybrid that references them.
 """
 from __future__ import annotations
@@ -24,6 +25,8 @@ class RetrievalConfig:
     rrf_k: int = 60
     depth: int = 100
     alpha: float = 0.5
+    rerank_depth: int = 50
+    reranker: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     batch_size: int = 32
     cache_dir: str | None = None
     extra: dict = field(default_factory=dict)
@@ -57,6 +60,8 @@ def components(spec: str) -> list[str]:
         return spec[4:].split("+")
     if spec.startswith("linear:"):
         return spec[7:].split("+")
+    if spec.startswith("rerank:"):
+        return components(spec[7:])
     return [spec]
 
 
@@ -80,8 +85,26 @@ def build_systems(specs, docs, cfg: RetrievalConfig, log=print, queries=None):
         return base[n]
 
     systems = {}
-    for spec in specs:
+    scorer = None
+
+    def first_stage(spec):
         if spec.startswith("rrf:"):
+            return RRFRetriever([get(p) for p in components(spec)], k=cfg.rrf_k, depth=cfg.depth,
+                                name=spec, fit_components=False).fit(docs)
+        if spec.startswith("linear:"):
+            lex, den = components(spec)
+            r = LinearFusionRetriever(get(lex), get(den), alpha=cfg.alpha, fit_components=False).fit(docs)
+            r.name = spec
+            return r
+        return get(spec)
+
+    for spec in specs:
+        if spec.startswith("rerank:"):
+            from .rerank import CrossEncoderScorer, RerankRetriever
+            scorer = scorer or CrossEncoderScorer(cfg.reranker)
+            systems[spec] = RerankRetriever(first_stage(spec[7:]), scorer, depth=cfg.rerank_depth, name=spec,
+                                            fit_first_stage=False).fit(docs)
+        elif spec.startswith("rrf:"):
             systems[spec] = RRFRetriever([get(p) for p in components(spec)], k=cfg.rrf_k, depth=cfg.depth,
                                          name=spec, fit_components=False).fit(docs)
         elif spec.startswith("linear:"):

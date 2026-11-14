@@ -14,9 +14,12 @@ class Pipeline:
     def __init__(self, retriever: PassageRetriever, generator: Generator, verifier: Verifier | None = None):
         self.retriever, self.generator, self.verifier = retriever, generator, verifier
 
-    def ask(self, question: str, k: int = 5, doc_ids: Sequence[str] | None = None, verify: bool = True) -> Answer:
+    def ask(self, question: str, k: int = 5, doc_ids: Sequence[str] | None = None, verify: bool = True,
+            where=None) -> Answer:
+        """`where`: optional chunk predicate (see retrieval.postprocess.section_filter), applied before ranking."""
         t0 = time.perf_counter()
-        passages = self.retriever.search(question, k=k, doc_ids=doc_ids)
+        kw = {} if where is None else {"where": where}
+        passages = self.retriever.search(question, k=k, doc_ids=doc_ids, **kw)
         t1 = time.perf_counter()
         answer = self.generator.generate(question, passages)
         t2 = time.perf_counter()
@@ -35,16 +38,21 @@ class Pipeline:
         return {d: self.ask(question, k=k, doc_ids=[d], verify=verify) for d in doc_ids}
 
 
-def build_default_pipeline(documents: list[Document], retriever: str = "bm25", verifier=None) -> Pipeline:
-    """CPU-only default: BM25 + extractive generator (+ optional verifier). Always works offline."""
+def build_default_pipeline(documents: list[Document], retriever: str = "bm25", verifier=None,
+                           rerank: bool = False, dedup_threshold: float | None = 0.85) -> Pipeline:
+    """CPU-only default: BM25 (+ optional cross-encoder rerank) + extractive generator (+ optional verifier).
+    Redundant passages are suppressed by default; pass dedup_threshold=None to disable."""
     from researchlens.generation.extractive import ExtractiveGenerator
     from researchlens.processing.chunking import chunk_document
     from researchlens.retrieval.index import ChunkIndex
     from researchlens.retrieval.lexical import BM25Retriever, TfidfRetriever
 
     base = {"bm25": BM25Retriever, "tfidf": TfidfRetriever}[retriever]()
+    if rerank:
+        from researchlens.retrieval.rerank import CrossEncoderScorer, RerankRetriever
+        base = RerankRetriever(base, CrossEncoderScorer())
     chunks = [c for d in documents for c in chunk_document(d)]
-    index = ChunkIndex(base, chunks, titles={d.doc_id: d.title for d in documents})
+    index = ChunkIndex(base, chunks, titles={d.doc_id: d.title for d in documents}, dedup_threshold=dedup_threshold)
     return Pipeline(index, ExtractiveGenerator(), verifier)
 
 
