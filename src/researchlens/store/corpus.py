@@ -11,6 +11,7 @@ derived deterministically by `chunk_document`, so changing chunking never needs 
 from __future__ import annotations
 
 import sqlite3
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -59,11 +60,14 @@ class CorpusStore:
         self.path = str(path)
         if self.path != ":memory:":
             Path(self.path).parent.mkdir(parents=True, exist_ok=True)
-        self._db = sqlite3.connect(self.path)
+        # Streamlit runs each rerun on a different thread: allow cross-thread use, serialise access with a lock.
+        self._db = sqlite3.connect(self.path, check_same_thread=False)
+        self._lock = threading.RLock()
         self._db.executescript(_SCHEMA)
 
     def close(self) -> None:
-        self._db.close()
+        with self._lock:
+            self._db.close()
 
     def __enter__(self) -> "CorpusStore":
         return self
@@ -74,12 +78,13 @@ class CorpusStore:
     # ------------------------------------------------------------------ write
     def add_document(self, doc: Document) -> bool:
         """Insert a document; returns False (and changes nothing) if its doc_id is already stored."""
-        cur = self._db.execute(
+        with self._lock:
+            cur = self._db.execute(
             "INSERT OR IGNORE INTO documents VALUES (?,?,?,?,?,?,?,?,?,?)",
             (doc.doc_id, doc.title, doc.year, doc.source, doc.source_path, len(doc.sections),
              len(doc.references), doc.schema_version, time.time(), doc.model_dump_json()))
-        self._db.commit()
-        return cur.rowcount == 1
+            self._db.commit()
+            return cur.rowcount == 1
 
     def add_pdf(self, pdf_path: str | Path) -> tuple[str, bool]:
         from researchlens.ingestion.pymupdf_ingestor import PyMuPDFIngestor
@@ -99,13 +104,15 @@ class CorpusStore:
         return rep
 
     def delete(self, doc_id: str) -> bool:
-        cur = self._db.execute("DELETE FROM documents WHERE doc_id = ?", (doc_id,))
-        self._db.commit()
-        return cur.rowcount == 1
+        with self._lock:
+            cur = self._db.execute("DELETE FROM documents WHERE doc_id = ?", (doc_id,))
+            self._db.commit()
+            return cur.rowcount == 1
 
     # ------------------------------------------------------------------ read
     def count(self) -> int:
-        return self._db.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
+        with self._lock:
+            return self._db.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
 
     def _where(self, doc_ids, year_min, year_max, title_contains):
         clauses, args = [], []
@@ -124,14 +131,16 @@ class CorpusStore:
     def list_documents(self, doc_ids: Sequence[str] | None = None, year_min: int | None = None,
                        year_max: int | None = None, title_contains: str | None = None) -> list[DocumentInfo]:
         where, args = self._where(doc_ids, year_min, year_max, title_contains)
-        rows = self._db.execute("SELECT doc_id,title,year,source,source_path,n_sections,n_references,added_at "
-                                f"FROM documents{where} ORDER BY added_at, doc_id", args).fetchall()
+        with self._lock:
+            rows = self._db.execute("SELECT doc_id,title,year,source,source_path,n_sections,n_references,added_at "
+                                    f"FROM documents{where} ORDER BY added_at, doc_id", args).fetchall()
         return [DocumentInfo(*r) for r in rows]
 
     def documents(self, doc_ids: Sequence[str] | None = None, year_min: int | None = None,
                   year_max: int | None = None, title_contains: str | None = None) -> list[Document]:
         where, args = self._where(doc_ids, year_min, year_max, title_contains)
-        rows = self._db.execute(f"SELECT json, schema_version FROM documents{where} ORDER BY added_at, doc_id", args).fetchall()
+        with self._lock:
+            rows = self._db.execute(f"SELECT json, schema_version FROM documents{where} ORDER BY added_at, doc_id", args).fetchall()
         out = []
         for js, ver in rows:
             if ver.split(".")[0] != SCHEMA_VERSION.split(".")[0]:

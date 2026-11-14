@@ -155,3 +155,12 @@ def test_build_windows_maps_back_to_paragraphs(tiny_qasper):
     covered = {pid for o in owners for pid in o}
     assert covered == {p.pid for p in s.paragraphs} - float_pids     # every text paragraph reachable, no captions
     assert all(len(t.split("\n", 1)[1].split()) <= 4 for t in texts)
+
+
+def test_extractive_prefers_running_text_over_captions():
+    from researchlens.contracts import Chunk, RetrievedPassage
+    from researchlens.generation.extractive import ExtractiveGenerator
+    text = "Table 3: Datasets used for evaluation of retrieval. The datasets used for evaluation include SciFact and QASPER."
+    p = RetrievedPassage(chunk=Chunk(chunk_id="c", doc_id="d", section="S", text=text, order=0), score=1, rank=1, retriever="t")
+    a = ExtractiveGenerator().generate("which datasets used for evaluation", [p])
+    assert a.sentences[0].text.startswith("The datasets used")

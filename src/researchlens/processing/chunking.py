@@ -53,7 +53,7 @@ def chunk_document(doc, max_tokens: int = 256, overlap: int = 32, include_abstra
 
     sections = list(doc.sections)
     if include_abstract and doc.abstract:
-        sections = [CSection(title="Abstract", paragraphs=[doc.abstract])] + sections
+        sections = [CSection(title="Abstract", paragraphs=[doc.abstract], pages=[getattr(doc, "abstract_page", None)])] + sections
     out = []
     for si, sec in enumerate(sections):
         pages = list(getattr(sec, "pages", []) or [])

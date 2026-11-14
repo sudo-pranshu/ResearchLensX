@@ -67,3 +67,17 @@ def test_add_pdfs_reports_added_duplicates_and_failures(tmp_path):
     r2 = s.add_pdfs([good])
     assert r2.added == [] and r2.duplicates == [str(good)]
     assert s.count() == 1
+
+
+def test_usable_from_other_threads(tmp_path):
+    """Streamlit reruns on different threads; the store must not raise sqlite3.ProgrammingError."""
+    import threading
+    s = CorpusStore(tmp_path / "t.sqlite"); s.add_document(mk("a"))
+    out = {}
+    def work():
+        try:
+            s.add_document(mk("b")); out["n"] = s.count(); out["ids"] = [i.doc_id for i in s.list_documents()]
+        except Exception as e:                      # pragma: no cover - would be the regression
+            out["err"] = repr(e)
+    th = threading.Thread(target=work); th.start(); th.join()
+    assert out == {"n": 2, "ids": ["a", "b"]}

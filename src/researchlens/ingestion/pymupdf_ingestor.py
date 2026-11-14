@@ -247,18 +247,19 @@ class PyMuPDFIngestor:
                 buf = [t, b.page]
         flush()
 
-        abstract = ""
+        abstract, abstract_page = "", None
         body_sections = []
         for title_, level, paras, pages in sections:
             if title_.lower() == "abstract" and not abstract:
                 abstract = " ".join(paras)
+                abstract_page = pages[0] if pages else None
                 continue
             if paras:
                 body_sections.append(Section(title=title_, paragraphs=paras, level=level, pages=pages))
         if not body_sections and not abstract:
             raise ValueError(f"{path.name}: no sections detected")
 
-        return Document(doc_id=doc_id, title=title, authors=authors, year=year, abstract=abstract,
+        return Document(doc_id=doc_id, title=title, authors=authors, year=year, abstract=abstract, abstract_page=abstract_page,
                         sections=body_sections, references=_split_references(ref_blocks),
                         source="pymupdf", source_path=str(path))
 

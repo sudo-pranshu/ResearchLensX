@@ -17,7 +17,7 @@ Updated: 2026-11-14 by Pranshu. Update this file at every milestone (PROJECT_BIB
 - H2 dev pilot (EXP-H2-002): inconclusive, because the small generator rarely cites; Answer-F1 guard failed.
 
 ## Active
-Days 4-6 done (11-14): EXP-H1-007 reranking helps on dev (R@5 .502 -> .580, hybrid first stage); MultiDocQA with traceable references and claim status; verifier explanations, combined-evidence support and temperature calibration (ECE .183 -> .067, EXP-H2-003). Abstention by lexical coverage is a weak signal (AUROC .636). Next: Streamlit app (Day 7).
+Days 4-6 done (11-14): EXP-H1-007 reranking helps on dev (R@5 .502 -> .580, hybrid first stage); MultiDocQA with traceable references and claim status; verifier explanations, combined-evidence support and temperature calibration (ECE .183 -> .067, EXP-H2-003). Abstention by lexical coverage is a weak signal (AUROC .636). Day 7 done: Streamlit app (Library/Ask/Search/Verify/Evaluation) verified in a real browser on 5 real PDFs incl. real NLI verdict with page-cited evidence. Next: knowledge graph (Day 8).
 
 Day 3 done (11-14): reranker, dedup, section filters implemented and tested offline; real cross-encoder smoke test ran on the 5 PDFs (ms-marco-MiniLM-L-6-v2, ~47 s on first call incl. model download). **No evidence yet that reranking helps**; that is EXP-H1-007 (Day 4).
 

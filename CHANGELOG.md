@@ -3,6 +3,8 @@
 Format: date · type (added / changed / interface / fixed / result) · description.
 
 ## 2026-11-05 (Day 1)
+- added · Streamlit app (`app/`): Library (upload, duplicates/failures reported), Ask (cited extractive answers, page-level references, abstention, claim-status pills), Search (retriever comparison), Verify a claim (NLI + explanation), Evaluation (committed results); `workspace.py` service layer with visible fallbacks and MOCK banner; `Document.abstract_page`; thread-safe `CorpusStore`; 29 new tests
+- fixed · found by running the app: SQLite cross-thread error under Streamlit reruns; extractive generator preferred figure/table captions
 - interface · schema 1.2 (additive): `VerificationResult.support` (direct/combined) and `.explanation`
 - added · `qa/engine.py` MultiDocQA (cross-paper balancing, references with page/section, coverage abstention, claim status: supported/inferred/conflicting/contradicted/unsupported), `NLIVerifier(combine=, temperature=)` + deterministic explanations, `evaluation/calibration.py`; EXP-H1-007, EXP-QA-001, EXP-H2-003
 - added · cross-encoder reranker (`retrieval/rerank.py`, spec `rerank:<spec>`), redundancy suppression and section filters (`retrieval/postprocess.py`), `ChunkIndex.search(where=, dedup_threshold=)`, `Pipeline.ask(where=)`, `build_default_pipeline(rerank=, dedup_threshold=)`; 8 offline tests

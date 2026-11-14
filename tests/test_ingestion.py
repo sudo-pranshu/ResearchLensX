@@ -109,9 +109,9 @@ def test_authors_only_from_metadata(parsed):
 
 def test_chunks_carry_page_numbers(parsed):
     chunks = chunk_document(parsed)
-    assert all(c.page is not None for c in chunks if c.section != "Abstract")
+    assert all(c.page is not None for c in chunks)
     assert {c.page for c in chunks if c.section == "Conclusion"} == {3}
-    assert next(c for c in chunks if c.section == "Abstract").page is None   # abstract page not asserted
+    assert next(c for c in chunks if c.section == "Abstract").page == 1
 
 
 def test_arxiv_id_and_year(tmp_path):
