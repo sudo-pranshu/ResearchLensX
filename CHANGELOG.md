@@ -3,6 +3,7 @@
 Format: date · type (added / changed / interface / fixed / result) · description.
 
 ## 2026-11-05 (Day 1)
+- added · `analysis/gaps.py` (author-stated / collection-pattern / absence-in-collection gaps, evidence + template RQ/methodology, confidence capped at medium, no novelty claims), `analysis/review.py` (cited literature review, Markdown/HTML/PDF), app pages Research gaps and Literature review, `scripts/gap_review_sheet.py` for manual labelling; shared strict limitation rule
 - added · `analysis/compare.py` comparative methodology table, shared/unique entities, Markdown export; app page Compare papers (same question asked of each paper)
 - interface · schema 1.3 (additive): graph node types author/finding/limitation, edge types authored_by/uses_method/evaluates_on/uses_metric/reports_finding/has_limitation/similar_problem
 - added · knowledge graph (`knowledge_graph/extract.py`, `builder.py`): provenance on every element, reference-matched `cites`, TF-IDF `similar_problem`, shared-entity edges, gated NLI supports/contradicts (candidates, mock never creates edges); app page with pyvis view and node inspector; EXP-KG-001 audit

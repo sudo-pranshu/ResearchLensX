@@ -155,6 +155,20 @@ class Workspace:
                 self._engines[key] = (builder.build(docs), None)
         return self._engines[key][0]
 
+    def gaps(self, s: Settings, doc_ids: Sequence[str] | None = None):
+        from researchlens.analysis.gaps import find_gaps
+        docs = self.store.documents(doc_ids)
+        kg = self.graph(s, doc_ids)
+        return find_gaps(docs, kg), kg
+
+    def review(self, s: Settings, doc_ids: Sequence[str] | None = None, link_with_nli: bool = False):
+        from researchlens.analysis.compare import conflicting_pairs
+        from researchlens.analysis.gaps import find_gaps
+        from researchlens.analysis.review import build_review
+        docs = self.store.documents(doc_ids)
+        kg = self.graph(s, doc_ids, link_with_nli=link_with_nli)
+        return build_review(docs, kg, find_gaps(docs, kg), conflicting_pairs(kg))
+
     def status(self, s: Settings | None = None) -> list[ComponentStatus]:
         s = s or Settings()
         out = [ComponentStatus("Ingestion", "real", "PyMuPDF (text PDFs only; no OCR)"),
