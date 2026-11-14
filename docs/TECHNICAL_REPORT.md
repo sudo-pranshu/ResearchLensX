@@ -44,15 +44,17 @@ Same 100 dev questions, retriever, verifier and thresholds as EXP-H2-002; only t
 
 | Condition | Citation P | Citation R | Answer-F1 | Abstained answers |
 |---|---|---|---|---|
-| Conventional RAG | .443 | .435 | .286 | 0 |
-| Verified RAG (full) | **.785** | **.768** | .225 | 23 |
+| Conventional RAG | .443 (paired 77: .420) | .435 (paired: .409) | .286 | 0 |
+| Verified RAG (full) | **.785** (paired 77) | **.768** (paired 77) | .225 | 23 |
 | Verified, no reassignment | .442 | .442 | .225 | 23 |
 | Verified, no dropping (post hoc) | .703 | .680 | .286 | 0 |
 
-Verified RAG raises citation precision by +.365 [+.264, +.468] and recall by +.359 (paper-free question clusters, Holm-adjusted p = .0001), but **fails the pre-set guard** that Answer-F1 may fall by at most 2 points (Δ −.060 [−.088, −.035]) because unsupported sentences are dropped. Reassignment (re-citing the best supporting passage found by the verifier) is what produces the gain: without it the effect vanishes (+.022, n.s.). The no-dropping variant keeps Answer-F1 unchanged and still gains +.259 precision, but it was selected after seeing results, so it is exploratory and must be pre-registered before any test run. Caveats: 100 dev questions, a 1.5B generator, V and J are both NLI models, Answer-F1 is lexical overlap. **H2 is partially supported on dev; it is not confirmed.**
+Citation scores are only defined for answers that still contain sentences, so the paired comparison uses the 77 questions where verified RAG did not abstain; the other rows are averaged over all 100.
+
+Verified RAG raises citation precision by +.365 [+.264, +.468] and recall by +.359 (cluster bootstrap over the 77 paired questions, Holm-adjusted p = .0001), but **fails the pre-set guard** that Answer-F1 may fall by at most 2 points (Δ −.060 [−.088, −.035]) because unsupported sentences are dropped. Reassignment (re-citing the best supporting passage found by the verifier) is what produces the gain: without it the effect vanishes (+.022, n.s.). The no-dropping variant keeps Answer-F1 unchanged and still gains +.259 precision, but it was selected after seeing results, so it is exploratory and must be pre-registered before any test run. Caveats: 100 dev questions, a 1.5B generator, V and J are both NLI models, Answer-F1 is lexical overlap. **H2 is partially supported on dev; it is not confirmed.**
 
 ## 5. Validity and limitations
 Read `KNOWN_LIMITATIONS.md`. In short: one hypothesis tested on its final split and rejected; the others rest on dev results; the extractive generator limits answer fluency; the gap engine is rule-based, collection-scoped and its quality is only audited informally (an independent labelled evaluation protocol is specified but not run); Colab notebooks are provided but were not executed here.
 
 ## 6. Reproducibility
-`./scripts/run_eval.sh` (tests + CPU experiments) and `./scripts/run_eval.sh --full`. Every committed run has `config.json` with the git hash, dataset version and environment. QASPER v0.3 is CC BY 4.0 and SciFact CC BY-NC 2.0; raw data and PDFs are not redistributed. The application needs no API key and runs offline once the models are cached.
+`./scripts/run_eval.sh` (tests + CPU experiments) and `./scripts/run_eval.sh --full`. Every committed experiment run has `config.json` with the git hash, dataset version and environment (the two small analysis runs EXP-QA-001 and EXP-H2-003 write theirs too). QASPER v0.3 is CC BY 4.0 and SciFact CC BY-NC 2.0; raw data and PDFs are not redistributed. The application needs no API key and runs offline once the models are cached.
