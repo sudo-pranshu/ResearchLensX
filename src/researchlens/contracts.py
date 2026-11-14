@@ -16,7 +16,7 @@ from typing import Literal, Protocol, Sequence, runtime_checkable
 
 from pydantic import BaseModel, Field
 
-SCHEMA_VERSION = "1.1"   # 1.1: additive page provenance (Section.pages, Chunk.page)
+SCHEMA_VERSION = "1.2"   # 1.1: page provenance (Section.pages, Chunk.page); 1.2: VerificationResult.support/explanation
 
 # Verification label set. Mapping from SciFact: SUPPORT->SUPPORTS, CONTRADICT->CONTRADICTS, NEI->INSUFFICIENT.
 Verdict = Literal["SUPPORTS", "CONTRADICTS", "INSUFFICIENT"]
@@ -95,6 +95,8 @@ class VerificationResult(BaseModel):
     evidence: list[EvidenceJudgement]
     model: str                                    # HF model id + revision, or "mock-*"
     is_mock: bool = False
+    support: Literal["direct", "combined"] | None = None   # SUPPORTS only: one passage entails it, or several passages jointly
+    explanation: str | None = None                # deterministic, template-built from the judgements (not generated text)
 
 
 # ---------------------------------------------------------------- generation

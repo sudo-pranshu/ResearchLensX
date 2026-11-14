@@ -77,35 +77,44 @@ class NLIVerifier:
     is_mock = False
 
     def __init__(self, scorer: Scorer, granularity: str = "sentence", support_threshold: float = 0.5,
-                 contradict_threshold: float = 0.5, sentence_splitter=None, name: str | None = None):
+                 contradict_threshold: float = 0.5, sentence_splitter=None, name: str | None = None,
+                 combine: bool = False, combine_top: int = 3):
         if granularity not in ("passage", "sentence"):
             raise ValueError("granularity must be 'passage' or 'sentence'")
         from researchlens.generation.extractive import split_sentences
         self.scorer, self.granularity = scorer, granularity
         self.ts, self.tc = support_threshold, contradict_threshold
         self.split = sentence_splitter or split_sentences
+        self.combine, self.combine_top = combine, combine_top      # multi-evidence support (sentence granularity only)
         self.name = name or f"nli:{getattr(scorer, 'name', 'scorer')}:{granularity}"
 
     # -- core: claim vs a list of premise texts --------------------------------------------
-    def judge_texts(self, claim: str, texts: Sequence[str]) -> list[tuple[str, np.ndarray, list[int]]]:
-        """For each text: (label, probs(3,), rationale sentence indices)."""
+    def _score(self, claim: str, texts: Sequence[str]) -> list[list[tuple[str, np.ndarray]]]:
+        """Per text: [(unit_text, probs(3,)), ...]; units are sentences, or the whole text for 'passage'."""
         if self.granularity == "passage":
             P = self.scorer(list(texts), [claim] * len(texts))
-            return [(decide(p, self.ts, self.tc)[0], p, []) for p in P]
+            return [[(t, p)] for t, p in zip(texts, P)]
         units, owner = [], []
         for ti, t in enumerate(texts):
-            sents = self.split(t) or [t]
-            units += sents
-            owner += [(ti, si) for si in range(len(sents))]
+            for si, s in enumerate(self.split(t) or [t]):
+                units.append(s); owner.append(ti)
         P = self.scorer(units, [claim] * len(units)) if units else np.zeros((0, 3))
+        rows: list[list[tuple[str, np.ndarray]]] = [[] for _ in texts]
+        for u, ti, p in zip(units, owner, P):
+            rows[ti].append((u, p))
+        return rows
+
+    def _judge_rows(self, rows):
         out = []
-        for ti in range(len(texts)):
-            rows = [(si, P[k]) for k, (o, si) in enumerate(owner) if o == ti]
-            # strongest non-neutral evidence sentence decides the passage
-            si, p = max(rows, key=lambda r: max(r[1][0], r[1][1]))
+        for unit_rows in rows:
+            si, (_, p) = max(enumerate(unit_rows), key=lambda r: max(r[1][1][0], r[1][1][1]))
             label, _ = decide(p, self.ts, self.tc)
-            out.append((label, p, [si] if label != "INSUFFICIENT" else []))
+            out.append((label, p, [si] if label != "INSUFFICIENT" and self.granularity == "sentence" else []))
         return out
+
+    def judge_texts(self, claim: str, texts: Sequence[str]) -> list[tuple[str, np.ndarray, list[int]]]:
+        """For each text: (label, probs(3,), rationale sentence indices)."""
+        return self._judge_rows(self._score(claim, texts))
 
     def aggregate(self, judged: list[tuple[str, np.ndarray, list[int]]]) -> tuple[str, float]:
         """Claim-level label over all passages: strongest SUPPORTS vs strongest CONTRADICTS."""
@@ -120,10 +129,60 @@ class NLIVerifier:
 
     # -- contract ----------------------------------------------------------------------------
     def verify(self, claim: Claim, passages: list[RetrievedPassage]) -> VerificationResult:
-        judged = self.judge_texts(claim.text, [p.chunk.text for p in passages]) if passages else []
+        rows = self._score(claim.text, [p.chunk.text for p in passages]) if passages else []
+        judged = self._judge_rows(rows)
         evidence = [EvidenceJudgement(chunk_id=p.chunk.chunk_id, label=l,
                                       probs={v: float(x) for v, x in zip(VERDICTS, probs)}, rationale_sentences=r)
                     for p, (l, probs, r) in zip(passages, judged)]
         label, conf = self.aggregate(judged)
-        return VerificationResult(claim=claim, label=label, confidence=conf, evidence=evidence,
-                                  model=getattr(self.scorer, "name", "scorer"), is_mock=False)
+        support, combined_ids = None, []
+        if label == "SUPPORTS":
+            support = "direct"
+        elif label == "INSUFFICIENT" and self.combine and self.granularity == "sentence" and len(passages) >= 2:
+            # Multi-evidence: no single passage entails the claim. Join the best-supporting sentence of the top
+            # `combine_top` passages and test the claim against that short joint premise.
+            best = []
+            for pi, unit_rows in enumerate(rows):
+                si, (s_text, p) = max(enumerate(unit_rows), key=lambda r: r[1][1][0])
+                best.append((float(p[0]), pi, si, s_text))
+            best = sorted(best, reverse=True)[: self.combine_top]
+            premise = " ".join(b[3] for b in best)
+            pj = self.scorer([premise], [claim.text])[0]
+            lj, cj = decide(pj, self.ts, self.tc)
+            if lj == "SUPPORTS":
+                label, conf, support = "SUPPORTS", cj, "combined"
+                combined_ids = [b[1] for b in best]
+                for pi, si in ((b[1], b[2]) for b in best):
+                    evidence[pi].rationale_sentences = [si]
+        res = VerificationResult(claim=claim, label=label, confidence=conf, evidence=evidence,
+                                 model=getattr(self.scorer, "name", "scorer"), is_mock=False, support=support)
+        res.explanation = explain(res, passages, combined_ids)
+        return res
+
+
+def explain(res: VerificationResult, passages: Sequence[RetrievedPassage], combined_ids: Sequence[int] = ()) -> str:
+    """Deterministic explanation assembled from the judgements (no generated text)."""
+    def where(i: int) -> str:
+        c = passages[i].chunk
+        return f"[{i + 1}] {c.section}" + (f", p. {c.page}" if c.page is not None else "")
+
+    n = len(passages)
+    note = " Model confidence is not proof that the claim is scientifically true."
+    if n == 0:
+        return "No evidence passages were available, so the claim cannot be assessed." + note
+    ev = res.evidence
+    if res.label == "SUPPORTS" and res.support == "combined":
+        return (f"Supported only by combining {', '.join(where(i) for i in combined_ids)}; no single passage entails the claim "
+                f"(joint entailment {res.confidence:.2f}). Treat as a reasonable inference, not a direct statement." + note)
+    if res.label == "SUPPORTS":
+        i = max((k for k, e in enumerate(ev) if e.label == "SUPPORTS"), key=lambda k: ev[k].probs["SUPPORTS"])
+        others = sum(1 for e in ev if e.label == "SUPPORTS") - 1
+        extra = f" {others} more passage(s) also entail it." if others > 0 else ""
+        return f"Entailed by {where(i)} (entailment {ev[i].probs['SUPPORTS']:.2f}).{extra}" + note
+    if res.label == "CONTRADICTS":
+        i = max((k for k, e in enumerate(ev) if e.label == "CONTRADICTS"), key=lambda k: ev[k].probs["CONTRADICTS"])
+        sup = any(e.label == "SUPPORTS" for e in ev)
+        extra = " Other passages entail it, so the evidence conflicts." if sup else ""
+        return f"Contradicted by {where(i)} (contradiction {ev[i].probs['CONTRADICTS']:.2f}).{extra}" + note
+    return (f"None of the {n} passage(s) entails or contradicts the claim (insufficient evidence in the retrieved text, "
+            f"which is not the same as the claim being false)." + note)
