@@ -70,6 +70,8 @@ def main(argv=None):
     ap.add_argument("--rrf-k", type=int, default=60)
     ap.add_argument("--depth", type=int, default=100)
     ap.add_argument("--alpha", type=float, default=0.5)
+    ap.add_argument("--rerank-depth", type=int, default=50, help="first-stage candidates passed to the cross-encoder")
+    ap.add_argument("--reranker", default="cross-encoder/ms-marco-MiniLM-L-6-v2")
     ap.add_argument("--bm25-k1", type=float, default=1.5)
     ap.add_argument("--bm25-b", type=float, default=0.75)
     ap.add_argument("--lsa-dim", type=int, default=256)
@@ -106,7 +108,8 @@ def main(argv=None):
     print(f"evaluating {len(questions)} questions with evidence ({args.setting})")
 
     rcfg = RetrievalConfig(bm25_k1=args.bm25_k1, bm25_b=args.bm25_b, lsa_dim=args.lsa_dim, rrf_k=args.rrf_k,
-                           depth=args.depth, alpha=args.alpha, batch_size=args.batch_size, cache_dir=args.cache_dir)
+                           depth=args.depth, alpha=args.alpha, batch_size=args.batch_size, cache_dir=args.cache_dir,
+                           rerank_depth=args.rerank_depth, reranker=args.reranker)
     queries = [f"{split.titles[q.paper_id]}. {q.question}" if args.title_query else q.question for q in questions]
     systems, base, sys_meta = build_systems(args.systems, docs, rcfg, log=lambda m: print(m, flush=True),
                                             queries=queries)
@@ -139,7 +142,10 @@ def main(argv=None):
     singles = {n: [r[primary] for r in rows] for n, rows in per_query.items() if ":" not in n}
     for n, rows in per_query.items():
         if ":" in n and singles:
-            comparisons += [c.to_dict() for c in compare_many(singles, n, [r[primary] for r in rows], primary,
+            baselines = dict(singles)
+            if n.startswith("rerank:") and n[7:] in per_query:      # a reranked system is also compared with its own first stage
+                baselines[n[7:]] = [r[primary] for r in per_query[n[7:]]]
+            comparisons += [c.to_dict() for c in compare_many(baselines, n, [r[primary] for r in rows], primary,
                                                                groups=groups)]
 
     run_id = args.run_name or f"h1_{Path(args.qasper).stem}_{args.setting}_{int(time.time())}"

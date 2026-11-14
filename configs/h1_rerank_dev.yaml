@@ -1,0 +1,15 @@
+# EXP-H1-007: cross-encoder reranking vs no reranking, QASPER v0.3 DEV, within-paper (tuning split; no test run).
+# Pre-set before running: rerank depth 20 (a single value, not tuned), reranker cross-encoder/ms-marco-MiniLM-L-6-v2 (general web search model).
+# Each reranked system is compared with its own first stage and with every single retriever (Holm per system).
+qasper: data/raw/qasper/qasper-dev-v0.3.json
+split_name: dev
+setting: within_paper
+systems: [bm25, e5, "rrf:bm25+e5", "rerank:bm25", "rerank:e5", "rerank:rrf:bm25+e5"]
+primary: recall@5
+rrf_k: 60
+depth: 100
+rerank_depth: 20
+reranker: cross-encoder/ms-marco-MiniLM-L-6-v2
+alpha: 0.5
+batch_size: 8
+out: results

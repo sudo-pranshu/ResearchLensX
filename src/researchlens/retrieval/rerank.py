@@ -26,6 +26,8 @@ class CrossEncoderScorer:
     def __init__(self, model: str = DEFAULT_RERANKER, batch_size: int = 16, max_length: int = 512):
         self.model_name, self.batch_size, self.max_length = model, batch_size, max_length
         self._model = None
+        self._cache: dict[tuple[str, str], float] = {}     # (query, text) -> score; shared across systems
+        self.n_pairs_scored = 0
 
     def _load(self):
         if self._model is None:
@@ -37,8 +39,13 @@ class CrossEncoderScorer:
     def scores(self, query: str, texts: Sequence[str]) -> np.ndarray:
         if not texts:
             return np.zeros(0)
-        out = self._load().predict([(query, t) for t in texts], batch_size=self.batch_size, show_progress_bar=False)
-        return np.asarray(out, dtype=float).reshape(-1)
+        todo = [t for t in dict.fromkeys(texts) if (query, t) not in self._cache]
+        if todo:
+            out = self._load().predict([(query, t) for t in todo], batch_size=self.batch_size, show_progress_bar=False)
+            for t, s in zip(todo, np.asarray(out, dtype=float).reshape(-1)):
+                self._cache[(query, t)] = float(s)
+            self.n_pairs_scored += len(todo)
+        return np.array([self._cache[(query, t)] for t in texts])
 
     def release(self) -> None:
         self._model = None
