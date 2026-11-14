@@ -17,6 +17,8 @@ Updated: 2026-11-14 by Pranshu. Update this file at every milestone (PROJECT_BIB
 - H2 dev pilot (EXP-H2-002): inconclusive, because the small generator rarely cites; Answer-F1 guard failed.
 
 ## Active
+Day 2 done (11-14): `CorpusStore` (SQLite) with duplicate handling and metadata filters; 5 real PDFs ingested into it and searched. Year comes from the arXiv id, so it is the arXiv submission year, not necessarily the publication year. Tests: 61 pass in `.venv`.
+
 Day 1 done (11-14): schema 1.1 page provenance; `PyMuPDFIngestor` + tests (52 pass in `.venv`; ingestion tests skip without PyMuPDF). Validated on 5 real arXiv PDFs (BERT, RAG, BEIR, SciFact, QASPER papers; kept in gitignored `data/raw/pdfs/`): titles, abstracts, sections and page-cited BM25 retrieval work. Known issues: reference counts approximate (BERT over-counts appendix text), appendix heading "A X" strips the letter, authors empty when PDF metadata lacks them, two-column and table text is noisy.
 
 See [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md) (14-day solo plan, 2026-11-14 to 2026-11-27) and [docs/REPOSITORY_AUDIT.md](docs/REPOSITORY_AUDIT.md).

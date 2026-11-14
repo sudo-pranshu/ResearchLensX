@@ -11,7 +11,7 @@ Tests: `pytest -q` → **40 passed** (4.2 s, CPU, offline). Nothing below is cla
 | Dense (e5-base-v2, SPECTER2, SciBERT), FAISS, embedding cache | **Done, tested, benchmarked** | `retrieval/dense.py`, `embedding_cache.py`, EXP-H1-003/004 |
 | RRF + linear fusion | **Done, benchmarked** | `retrieval/fusion.py`; hybrid does not beat e5 (H1 not supported, EXP-H1-006) |
 | Cross-encoder reranking | **Missing** (no code) | grep: no `rerank` / `cross-encoder` anywhere |
-| Metadata-aware filtering | **Missing** | no filter in `ChunkIndex` / retrievers |
+| Metadata-aware filtering | **Partial**: document-level filters (ids, year, title) in `CorpusStore`; not yet exposed in retrieval/UI | `store/corpus.py` |
 | Duplicate/redundant passage suppression | **Missing** | no dedup/MMR |
 | Document-level vs chunk-level retrieval | Partial | chunk-level only; SciFact is abstract-level in a separate script |
 | Retrieval metrics: Recall@K, nDCG, MRR, paired stats, latency | Mostly done | `evaluation/metrics.py`, `stats.py`; **Precision@K and per-query-category breakdown not verified/absent**; latency is logged per run only |

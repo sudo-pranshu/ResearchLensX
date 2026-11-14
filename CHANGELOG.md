@@ -3,6 +3,7 @@
 Format: date · type (added / changed / interface / fixed / result) · description.
 
 ## 2026-11-05 (Day 1)
+- added · `store/corpus.py` SQLite corpus store (dedupe by doc_id, batch ingest with per-file failure report, metadata filters on year/title/ids, schema-version guard) + 7 tests
 - interface · schema 1.1 (additive): `Section.pages`, `Chunk.page` for page-level citations; `chunk_document` propagates the start page
 - added · `PyMuPDFIngestor` (title, abstract, numbered/known headings, margin header/footer removal, de-hyphenation, cross-page paragraph merge, references, arXiv id/year) with 14 tests on self-generated PDFs; real-PDF fixes: rotated arXiv stamp ignored (read for id only), ligature normalisation, hanging-indent reference splitting, lettered appendix headings
 - changed · project is solo; team docs removed, freeze moved to 2026-11-27
