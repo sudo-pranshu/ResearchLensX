@@ -75,7 +75,7 @@ def build_review(documents: Sequence[Document], kg: KnowledgeGraph, gaps: Sequen
             lines.append(f"- **{d.title}** ({d.year or 'year unknown'}): “{_q(first)}” {c}")
         else:
             lines.append(f"- **{d.title}** ({d.year or 'year unknown'}): no abstract was detected.")
-    sec.append(("Research problem", "\n".join(lines)))
+    sec.append(("Research problem (first sentence of each abstract)", "\n".join(lines)))
 
     # 2 background: measured relations between the papers
     by_n = {n.id: n for n in kg.nodes}
@@ -86,7 +86,7 @@ def build_review(documents: Sequence[Document], kg: KnowledgeGraph, gaps: Sequen
             ev = e.attrs["evidence"][0]
             rel.append(f"- {a.label} cites {b.label}: reference entry “{_q(ev['quote'], 160)}” {cites.cite(ev['doc_id'], a.label, 'References', None, ev['quote'])}")
         elif e.type == "similar_problem":
-            rel.append(f"- {a.label} and {b.label} address lexically similar problems (TF-IDF cosine {e.attrs['cosine']} on title and abstract).")
+            rel.append(f"- {a.label} and {b.label} have lexically similar titles/abstracts (TF-IDF cosine {e.attrs['cosine']}); this does not establish they study the same problem.")
         elif e.type == "shares_entity":
             rel.append(f"- {a.label} and {b.label} both involve: {', '.join(e.attrs['shared'])}.")
     sec.append(("Background", "\n".join(rel) or "No citations or shared entities were detected between these papers."))
@@ -104,7 +104,7 @@ def build_review(documents: Sequence[Document], kg: KnowledgeGraph, gaps: Sequen
     for r in table:
         for its in r.cells.values():
             for i in its:
-                items_meta[id(i)] = (r.doc_id, r.title, "", i.page)
+                items_meta[id(i)] = (r.doc_id, r.title, i.section, i.page)
     meth = ["| Paper | Methods / models | Datasets | Metrics |", "|---|---|---|---|"]
     for r in table:
         meth.append(f"| {r.title[:60]} | {cell(r.cells['method'][:5])} | {cell(r.cells['dataset'][:5])} | {cell(r.cells['metric'][:5])} |")
@@ -117,7 +117,7 @@ def build_review(documents: Sequence[Document], kg: KnowledgeGraph, gaps: Sequen
     f_lines = []
     for r in table:
         for i in r.cells["finding"][:4]:
-            f_lines.append(f"- {r.title[:50]}: “{_q(i.text)}” {cites.cite(r.doc_id, r.title, 'Results', i.page, i.quote)}")
+            f_lines.append(f"- {r.title[:50]}: “{_q(i.text)}” {cites.cite(r.doc_id, r.title, i.section, i.page, i.quote)}")
     sec.append(("Experimental findings", "\n".join(f_lines) or "No finding sentences were detected."))
 
     # 6 contradictory evidence
@@ -127,16 +127,16 @@ def build_review(documents: Sequence[Document], kg: KnowledgeGraph, gaps: Sequen
             ev = cites.cite(c["evidence_doc"], by_id[c["evidence_doc"]].title if c["evidence_doc"] in by_id else "", "", c["evidence_page"], c["evidence_quote"])
             c_lines.append(f"- {c['relation'].upper()} (NLI-flagged candidate, unreviewed, confidence {c['confidence']:.2f}): finding “{_q(c['finding'], 160)}” "
                            f"vs “{_q(c['evidence_quote'], 160)}” {ev}")
-        sec.append(("Contradictory evidence", "\n".join(c_lines)))
+        sec.append(("Contradictory evidence (NLI-flagged candidates, unreviewed)", "\n".join(c_lines)))
     else:
-        sec.append(("Contradictory evidence", "No cross-paper contradictions or confirmations were flagged. This is not a finding that none exist: "
+        sec.append(("Contradictory evidence (NLI-flagged candidates, unreviewed)", "No cross-paper contradictions or confirmations were flagged. This is not a finding that none exist: "
                                               "cross-paper NLI is optional and gated by relevance checks."))
 
     # 7 limitations
     l_lines = []
     for r in table:
         for i in r.cells["limitation"][:3]:
-            l_lines.append(f"- {r.title[:50]}: “{_q(i.text)}” {cites.cite(r.doc_id, r.title, 'Limitations', i.page, i.quote)}")
+            l_lines.append(f"- {r.title[:50]}: “{_q(i.text)}” {cites.cite(r.doc_id, r.title, i.section, i.page, i.quote)}")
     sec.append(("Research limitations", "\n".join(l_lines) or "No limitation sentences were detected."))
 
     # 8 gaps, 9 future directions
@@ -145,13 +145,13 @@ def build_review(documents: Sequence[Document], kg: KnowledgeGraph, gaps: Sequen
         ev = " ".join(cites.cite(e.doc_id, e.title, e.section, e.page, e.quote) for e in g.evidence[:3])
         quotes = "; ".join(f"“{_q(e.quote, 200)}”" for e in g.evidence[:2])
         block = (f"- **{g.id}** ({g.kind.replace('_', ' ')}; basis: {g.basis}; confidence: {g.confidence}). {g.statement} Evidence: {quotes} {ev}\n"
-                 f"  - Why the collection does not address it: {g.why_unaddressed}\n  - Proposed research question: {g.research_question}\n"
+                 f"  - Status in the collection (not checked against the other papers): {g.why_unaddressed}\n  - Proposed research question: {g.research_question}\n"
                  f"  - Potential methodology: {g.methodology}\n  - Limitations: {g.limitations}\n  - {g.scope}")
         g_lines.append(block)
         if g.kind in ("open_question", "missing_comparison"):
             f_dirs.append(f"- {g.research_question} (from {g.id}) {ev}")
-    sec.append(("Identified research gaps", "\n".join(g_lines) or "No gaps were identified from the extracted evidence."))
-    sec.append(("Future research directions", "\n".join(f_dirs) or "No future-work statements were detected."))
+    sec.append(("Candidate research gaps", "\n".join(g_lines) or "No gaps were identified from the extracted evidence."))
+    sec.append(("Future research directions", "\n".join(f_dirs) or "No open-question or missing-comparison gaps were produced."))
 
     refs = [f"{k}. **{t}** ({y or 'year unknown'}), `{i}`" for k, (i, t, y) in enumerate(((d.doc_id, d.title, d.year) for d in documents), 1)]
     sources = ["\n".join(f"[{s.n}] {s.title[:70]}, §{s.section or 'n/a'}, {('p. ' + str(s.page)) if s.page is not None else 'page unknown'}: “{_q(s.quote, 200)}”"

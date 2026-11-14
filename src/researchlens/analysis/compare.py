@@ -27,6 +27,7 @@ class Item:
     page: int | None
     quote: str
     mentions: int = 1
+    section: str = ""
 
 
 @dataclass
@@ -51,7 +52,7 @@ def comparison_table(kg: KnowledgeGraph, documents: Sequence[Document], max_item
                     ev = (e.attrs.get("evidence") or [{}])[0]
                     tgt = by_id[e.target]
                     text = tgt.attrs.get("full_text", tgt.label) if key in ("finding", "limitation") else tgt.label
-                    row.cells[key].append(Item(text, ev.get("page"), ev.get("quote", ""), int(e.attrs.get("mentions", 1))))
+                    row.cells[key].append(Item(text, ev.get("page"), ev.get("quote", ""), int(e.attrs.get("mentions", 1)), ev.get("section", "")))
         for key in row.cells:
             row.cells[key].sort(key=lambda i: -i.mentions)
             row.cells[key] = row.cells[key][:max_items]

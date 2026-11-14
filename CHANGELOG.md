@@ -3,6 +3,7 @@
 Format: date · type (added / changed / interface / fixed / result) · description.
 
 ## 2026-11-05 (Day 1)
+- fixed · after an external methodology review: gap text no longer claims other papers fail to address an item ("not checked"), review citations use the real section, related-work and citation-bearing sentences are no longer attributed to the paper, complete-linkage clusters with stored similarity, one sentence per gap, round-robin ranking across papers, missing-comparison uses unthresholded mentions, NLI edges gated on a shared extracted entity; 7 regression tests
 - added · `analysis/gaps.py` (author-stated / collection-pattern / absence-in-collection gaps, evidence + template RQ/methodology, confidence capped at medium, no novelty claims), `analysis/review.py` (cited literature review, Markdown/HTML/PDF), app pages Research gaps and Literature review, `scripts/gap_review_sheet.py` for manual labelling; shared strict limitation rule
 - added · `analysis/compare.py` comparative methodology table, shared/unique entities, Markdown export; app page Compare papers (same question asked of each paper)
 - interface · schema 1.3 (additive): graph node types author/finding/limitation, edge types authored_by/uses_method/evaluates_on/uses_metric/reports_finding/has_limitation/similar_problem

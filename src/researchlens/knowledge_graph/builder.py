@@ -14,7 +14,7 @@ import re
 from collections import Counter, defaultdict
 from typing import Sequence
 
-from researchlens.contracts import Claim, Document, KGEdge, KGNode, KnowledgeGraph, VerificationResult
+from researchlens.contracts import Chunk, Claim, Document, KGEdge, KGNode, KnowledgeGraph, VerificationResult
 from researchlens.knowledge_graph.extract import extract_from_chunk, title_method
 from researchlens.processing.chunking import chunk_document
 
@@ -67,6 +67,9 @@ class GraphBuilder:
                 if len(ents[("dataset", kind_key[1])]) >= len(ents[kind_key]):
                     del ents[kind_key]
             per_doc_entities[d.doc_id] = ents
+            # raw mentions, no min_mentions threshold: used to avoid claiming a pairing is "missing" when it merely fell below the threshold
+            nodes[pid].attrs["raw_methods"] = sorted({k[1] for k in ents if k[0] == "method"})
+            nodes[pid].attrs["raw_datasets"] = sorted({k[1] for k in ents if k[0] == "dataset"})
             for (kind, key), ms in ents.items():
                 if len(ms) < self.min_mentions and not (kind == "metric" or (kind == "method" and tm and key == _norm(tm))):
                     continue
@@ -156,7 +159,7 @@ class GraphBuilder:
         An NLI model asked about an unrelated passage will often answer "contradiction" with high confidence
         (observed on real papers: 9/9 raw edges were off-topic). So an edge needs ALL of: topical relevance
         (>= `min_coverage` of the finding's content words occur in the passage), at least one shared named term
-        (capitalised token, e.g. a method/dataset name), and a confident SUPPORTS/CONTRADICTS verdict.
+        (an extracted method/dataset name found in both), and a confident SUPPORTS/CONTRADICTS verdict.
         Surviving edges are still only candidates for human review (attrs["status"])."""
         if getattr(verifier, "is_mock", False):
             return []                                           # a mock must never create scientific relations
@@ -167,11 +170,13 @@ class GraphBuilder:
                 continue
             src, text = n.attrs["doc_id"], n.attrs["full_text"]
             f_tok = set(tokenize(text))
-            f_names = {w.strip(".,;:()") for w in text.split() if w[:1].isupper() and len(w) > 2 and not text.startswith(w)}
+            # the finding must name a method or dataset (extracted entity) that the evidence passage also names
+            f_names = {m.text.lower() for m in extract_from_chunk(Chunk(chunk_id="f", doc_id=src, section="Results", text=text, order=0))
+                       if m.kind in ("method", "dataset")}
             for other in (d.doc_id for d in documents if d.doc_id != src):
                 ps = [p for p in index.search(text, k=3, doc_ids=[other])
                       if f_tok and len(f_tok & set(tokenize(p.chunk.text))) / len(f_tok) >= min_coverage
-                      and any(nm in p.chunk.text for nm in f_names)]
+                      and any(nm in p.chunk.text.lower() for nm in f_names)]
                 if not ps:
                     continue
                 v = verifier.verify(Claim(claim_id=n.id, text=text, source="document", doc_id=src), ps)

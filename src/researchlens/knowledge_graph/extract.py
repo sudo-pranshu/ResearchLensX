@@ -43,18 +43,26 @@ LIMITATION_CUES = re.compile(r"\b(limitation\w*|fails? to|fail(?:ed|ure)s?|canno
                              r"left (?:for|to) future|not (?:able|robust)|struggle\w*)\b", re.I)
 # A limitation must be framed as the AUTHORS' own (we/our/this work/the model...) or say "limitation" outright; sentences that merely
 # contain words like "cannot"/"failed" (dataset examples, quoted claims) are not limitations.
-AUTHORIAL = re.compile(r"\b(we|our|this (?:paper|work|study|approach|model|method|dataset|benchmark)|the (?:proposed )?(?:model|approach|method|system|benchmark|dataset)s?)\b", re.I)
+AUTHORIAL = re.compile(r"\b(we|our|this (?:paper|work|study|approach|model|method|dataset|benchmark))\b", re.I)
 EXPLICIT_LIMIT = re.compile(r"\blimitations?\b|\blimited (?:to|by)\b|\bwe limited\b|\bno (?:benchmark|dataset|model) is perfect\b", re.I)
 NOT_A_LIMITATION = re.compile(r"^(claim\s*\d*|refutes|supports|label|claim:|example)\b|statistically robust|cannot be attributed|not be attributed|hope to address", re.I)
 
 
-def is_limitation_sentence(s: str) -> bool:
-    if len(s) < 50 or NOT_A_LIMITATION.search(s) or re.match(r"^\W*(appendix|figure|table)", s, re.I):
+CITATION_MARK = re.compile(r"\[\d+(?:[,\u2013\-]\s*\d+)*\]|\bet al\.|\(\w[\w\-]+(?: and \w+)?,? \d{4}\)")
+BACKGROUND_SECTIONS = ("introduction", "related work", "background", "preliminar", "prior work", "literature")
+
+
+def is_limitation_sentence(s: str, section: str = "") -> bool:
+    """Sentence presents a limitation of the paper's OWN work: authorial wording (or the word "limitation"), outside
+    introduction/related-work text, and without citation markers (which signal statements about other people's work)."""
+    if section and any(b in section.lower() for b in BACKGROUND_SECTIONS):
+        return False
+    if len(s) < 50 or NOT_A_LIMITATION.search(s) or CITATION_MARK.search(s) or re.match(r"^\W*(appendix|figure|table)", s, re.I):
         return False
     return bool(EXPLICIT_LIMIT.search(s) or (LIMITATION_CUES.search(s) and AUTHORIAL.search(s)))
 
 
-FINDING_SECTIONS = ("abstract", "result", "experiment", "conclusion", "discussion", "evaluation", "analysis", "introduction")
+FINDING_SECTIONS = ("abstract", "result", "experiment", "conclusion", "discussion", "evaluation", "analysis")   # not introduction: it reports prior work
 LIMIT_SECTIONS = ("limitation", "discussion", "conclusion", "future", "analysis", "error")
 
 
@@ -110,7 +118,7 @@ def extract_from_chunk(chunk: Chunk) -> list[Mention]:
                 out.append(mk("metric", METRICS[m.group(0)]))
         if any(s in sec for s in FINDING_SECTIONS) and FINDING_CUES.search(sent) and re.search(r"\d|than|state-of-the-art", sent):
             out.append(mk("finding", sent))
-        if any(s in sec for s in LIMIT_SECTIONS) and is_limitation_sentence(sent):
+        if any(s in sec for s in LIMIT_SECTIONS) and is_limitation_sentence(sent, chunk.section):
             out.append(mk("limitation", sent))
     return out
 

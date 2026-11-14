@@ -18,9 +18,10 @@ def make():
 
 def test_all_sections_present_in_order():
     r = make()
-    assert [h for h, _ in r.sections] == ["Research problem", "Background", "Existing methodologies", "Paper-by-paper comparison",
-                                          "Experimental findings", "Contradictory evidence", "Research limitations",
-                                          "Identified research gaps", "Future research directions", "References"]
+    assert [h for h, _ in r.sections] == ["Research problem (first sentence of each abstract)", "Background", "Existing methodologies",
+                                          "Paper-by-paper comparison", "Experimental findings",
+                                          "Contradictory evidence (NLI-flagged candidates, unreviewed)", "Research limitations",
+                                          "Candidate research gaps", "Future research directions", "References"]
 
 
 def test_every_citation_resolves_and_sources_have_quotes():
@@ -58,7 +59,7 @@ def test_caveat_and_gap_fields_in_exports():
 def test_empty_sections_say_so_instead_of_filling():
     kg = GraphBuilder().build([P1])
     md = review_markdown(build_review([P1], kg, []))
-    assert "No gaps were identified" in md and "No cross-paper contradictions" in md
+    assert "No gaps were identified" in md and "No cross-paper contradictions" in md and "unreviewed" in md
 
 
 def test_html_escapes_untrusted_pdf_text():
@@ -75,4 +76,13 @@ def test_pdf_export_roundtrip(tmp_path):
     doc = pymupdf.open(out)
     from researchlens.ingestion.pymupdf_ingestor import _clean
     text = _clean(" ".join(p.get_text() for p in doc))      # PDF text extraction yields fi/fl ligatures
-    assert doc.page_count >= 1 and "Identified research gaps" in text and "automatically from sentences" in text
+    assert doc.page_count >= 1 and "Candidate research gaps" in text and "automatically from sentences" in text
+
+
+def test_citations_use_the_real_section_not_a_made_up_label():
+    r = make()
+    secs = {s.section for s in r.sources}
+    assert "Results" not in secs or any(sec.title == "Results" for d in DOCS for sec in d.sections)
+    for s in r.sources:
+        real = {sec.title for d in DOCS for sec in d.sections} | {"Abstract", "References", "Title", ""}
+        assert s.section in real, s

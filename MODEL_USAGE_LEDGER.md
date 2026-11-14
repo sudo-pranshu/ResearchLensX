@@ -18,7 +18,7 @@ Planned (not started, each needs a concrete trigger):
 
 | Date | Task | Output |
 |------|------|--------|
-| — | none yet | — |
+| 2026-11-14 | Methodology review of gap discovery, graph NLI linking and review wording (read-only, ~1.5 min, ~89k tokens) | 5 validity threats + evaluation protocol; all five code fixes applied (wording, real section labels, related-work/citation exclusion, complete-linkage clusters, mention-level missing-comparison, entity-gated NLI edges). Held-out evaluation protocol not yet run. |
 
 Planned: gap-discovery methodology review; NLI calibration/explanation design.
 
