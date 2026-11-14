@@ -40,7 +40,16 @@ Guarantees tested in the suite (129 tests): every answer sentence is copied from
 Measured side results: abstention by lexical evidence coverage separates unanswerable QASPER questions weakly (AUROC .636, EXP-QA-001), so the default threshold is conservative; graph extraction audit on 5 papers (single annotator): methods about 76% precise, datasets 10/10 precise but low recall (EXP-KG-001).
 
 ## 4. EXP-H2-004 (RAG vs verified RAG, one-shot prompt)
-See the register row in `PROJECT_BIBLE.md` and `results/EXP-H2-004_rag_vs_verified_dev_pilot_v2/`. (Filled in after the run.)
+Same 100 dev questions, retriever, verifier and thresholds as EXP-H2-002; only the prompt changed (one worked example showing the `[n]` citation format, shared by every condition). Manipulation check, set beforehand (baseline must cite at least 0.7 times per answer): **passed** (0.99 vs 0.15).
+
+| Condition | Citation P | Citation R | Answer-F1 | Abstained answers |
+|---|---|---|---|---|
+| Conventional RAG | .443 | .435 | .286 | 0 |
+| Verified RAG (full) | **.785** | **.768** | .225 | 23 |
+| Verified, no reassignment | .442 | .442 | .225 | 23 |
+| Verified, no dropping (post hoc) | .703 | .680 | .286 | 0 |
+
+Verified RAG raises citation precision by +.365 [+.264, +.468] and recall by +.359 (paper-free question clusters, Holm-adjusted p = .0001), but **fails the pre-set guard** that Answer-F1 may fall by at most 2 points (Δ −.060 [−.088, −.035]) because unsupported sentences are dropped. Reassignment (re-citing the best supporting passage found by the verifier) is what produces the gain: without it the effect vanishes (+.022, n.s.). The no-dropping variant keeps Answer-F1 unchanged and still gains +.259 precision, but it was selected after seeing results, so it is exploratory and must be pre-registered before any test run. Caveats: 100 dev questions, a 1.5B generator, V and J are both NLI models, Answer-F1 is lexical overlap. **H2 is partially supported on dev; it is not confirmed.**
 
 ## 5. Validity and limitations
 Read `KNOWN_LIMITATIONS.md`. In short: one hypothesis tested on its final split and rejected; the others rest on dev results; the extractive generator limits answer fluency; the gap engine is rule-based, collection-scoped and its quality is only audited informally (an independent labelled evaluation protocol is specified but not run); Colab notebooks are provided but were not executed here.

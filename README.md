@@ -27,7 +27,7 @@ It is also a research framework. Two hypotheses were pre-registered and tested o
 | Cross-encoder rerank, QASPER **dev** | R@5 .502 → .580 on the hybrid (+.078, p_holm .0003); dev only |
 | NLI verifier, SciFact dev macro-F1 | LR .518 → DeBERTa passage-level .681 |
 | Confidence calibration (dev, out-of-fold) | ECE .183 → .067 |
-| H2 verified RAG | pilot EXP-H2-002 inconclusive (generator rarely cited); corrected pilot EXP-H2-004 in `EXPERIMENT_LOG.md` |
+| H2 verified RAG, QASPER **dev** pilot (100 Q, 1.5B generator) | citation precision .443 → .785, but Answer-F1 −.060 fails the 2-pt guard; **partially supported, not confirmed**; test split not run |
 
 Limitations are in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md). Gaps are collection-scoped and never claimed novel; extraction is rule-based; Colab notebooks were not executed here.
 

@@ -5,7 +5,7 @@ Honest list, kept current. "Measured" means a committed run in `results/`; every
 ## Scientific status
 - **H1 (hybrid beats every single retriever): not supported** on the QASPER test split (EXP-H1-006): RRF(BM25+e5) R@5 .486 vs e5 .501 (Δ −.015, p_holm .10). The hybrid does beat BM25, TF-IDF and LSA.
 - **Reranking helps on dev only** (EXP-H1-007: R@5 .502 → .580 with the hybrid first stage). It has not been run on the test split, and the reranker is a web-search model (MS MARCO), not a scientific one.
-- **H2 (verified RAG improves citation correctness): not yet decided.** EXP-H2-002 was confounded (the 1.5B generator rarely cited). EXP-H2-004 is the corrected pilot; see the experiment log for its result. No 7-8B generator run exists (needs Colab; not executed).
+- **H2 (verified RAG improves citation correctness): partially supported on a dev pilot only.** EXP-H2-004 (100 Q, 1.5B generator, one-shot citation prompt): citation precision .443 → .785 (CI excludes 0), but the full treatment fails the pre-set Answer-F1 guard (−.060) because dropped unsupported sentences make 23% of answers abstain. The "no-drop" variant that keeps Answer-F1 is a post-hoc ablation and must be pre-registered before a test run. The verifier V and judge J are both NLI models (different checkpoints), Answer-F1 is lexical, and no 7-8B generator or test-split run exists (needs Colab; not executed).
 - **H3 (cross-paper reasoning) is exploratory only**; cross-paper NLI edges were invalid on raw output (0/9) and are now gated and labelled candidates.
 
 ## Components

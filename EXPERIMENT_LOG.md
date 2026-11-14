@@ -14,7 +14,7 @@ The authoritative register (config, git hash, models, data, headline numbers, st
 | EXP-QA-001 | Can lexical coverage detect unanswerable questions? | AUROC .636; weak | Default abstention threshold 0.2; rely on NLI status |
 | EXP-H2-003 | Calibrate the NLI confidence | ECE .183 → .067 out-of-fold, T = 2.24 | Calibrated confidence in the app |
 | EXP-KG-001 | Graph extraction audit (qualitative) | Methods 76%, datasets 100% precise (low recall); raw cross-paper NLI edges 0/9 valid | Gate NLI edges; label as candidates |
-| EXP-H2-004 | RAG vs verified RAG, one-shot citation prompt (dev pilot) | see register | see register |
+| EXP-H2-004 | RAG vs verified RAG, one-shot citation prompt (dev pilot) | Baseline now cites (0.99/answer). Verified: citation precision .443 → .785 (CI excludes 0) but Answer-F1 −.060 (fails the 2-pt guard; 23% abstentions). Reassignment drives the gain; the no-drop variant keeps Answer-F1 and still gains +.259 | H2 partially supported on dev only. Pre-register the no-drop variant before any test run; needs a larger generator on Colab to be convincing |
 
 ## Not run
 - H2 with a 7-8B generator and the QASPER test split (needs Colab).
