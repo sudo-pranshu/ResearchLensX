@@ -175,16 +175,18 @@ def _split_references(blocks: list[_Block]) -> list[Reference]:
 class PyMuPDFIngestor:
     name = "pymupdf"
 
-    def ingest(self, pdf_path: str) -> Document:
+    def ingest(self, pdf_path: str, max_pages: int | None = None) -> Document:
         import pymupdf
 
         path = Path(pdf_path)
         raw = path.read_bytes()
         pdf = pymupdf.open(stream=raw, filetype="pdf")
         try:
+            n_pages = pdf.page_count
+            if max_pages is not None and n_pages > max_pages:      # checked before any text extraction
+                raise ValueError(f"{path.name}: {n_pages} pages exceeds the limit of {max_pages}")
             blocks, rotated_text = _extract_blocks(pdf)
             meta = pdf.metadata or {}
-            n_pages = pdf.page_count
         finally:
             pdf.close()
         if not blocks or sum(len(b.text) for b in blocks) < 200:
@@ -259,7 +261,7 @@ class PyMuPDFIngestor:
         if not body_sections and not abstract:
             raise ValueError(f"{path.name}: no sections detected")
 
-        return Document(doc_id=doc_id, title=title, authors=authors, year=year, abstract=abstract, abstract_page=abstract_page,
+        return Document(doc_id=doc_id, title=title, authors=authors, year=year, abstract=abstract, abstract_page=abstract_page, n_pages=n_pages,
                         sections=body_sections, references=_split_references(ref_blocks),
                         source="pymupdf", source_path=str(path))
 

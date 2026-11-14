@@ -32,7 +32,7 @@ DB = str(CFG.db_path)
 
 @st.cache_resource
 def get_workspace(db_path: str) -> Workspace:
-    return Workspace(db_path)          # cached per database path
+    return Workspace.from_config(CFG)   # cached per database path
 
 
 ws = get_workspace(DB)

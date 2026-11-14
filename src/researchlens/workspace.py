@@ -18,7 +18,9 @@ from pathlib import Path
 from typing import Sequence
 
 from researchlens.contracts import Claim, Document, RetrievedPassage, VerificationResult
-from researchlens.store.corpus import CorpusStore, IngestReport
+from researchlens.settings import AppConfig
+from researchlens.storage.documents import DocumentStorage, LocalDocumentStorage
+from researchlens.store.corpus import CorpusStore, FileInfo, IngestReport
 
 NLI_MODEL = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
 NLI_TEMPERATURE = 2.24      # fitted on SciFact dev PASSAGE-level probabilities (EXP-H2-003); valid for granularity="passage" only
@@ -45,26 +47,58 @@ class Settings:
 
 
 class Workspace:
-    def __init__(self, db_path: str | Path = ":memory:"):
-        self.store = CorpusStore(db_path)
+    def __init__(self, db_path: str | Path = ":memory:", storage: DocumentStorage | None = None, config: AppConfig | None = None,
+                 workspace: str = "local"):
+        self.workspace = workspace
+        self.config = config
+        self.max_upload_bytes = config.max_upload_bytes if config else 50 * 1024 * 1024
+        self.max_pages = config.max_pages if config else 400
+        self.store = CorpusStore(db_path, workspace=workspace)
+        if storage is None:
+            import tempfile
+            root = Path(tempfile.mkdtemp(prefix="rlx-files-")) if str(db_path) == ":memory:" else Path(db_path).parent / "library"
+            storage = LocalDocumentStorage(root)
+        self.storage = storage
         self._engines: dict = {}
         self._verifiers: dict[bool, object] = {}
         self._verifier_notes: dict[bool, str] = {}
         self._last_combine = False
         self._fallbacks: list[ComponentStatus] = []
 
+    @classmethod
+    def from_config(cls, config: AppConfig) -> "Workspace":
+        return cls(config.db_path, storage=LocalDocumentStorage(config.files_dir), config=config, workspace=config.workspace)
+
     # ------------------------------------------------------------------ library
     def upload(self, files: Sequence[tuple[str, bytes]]) -> IngestReport:
-        """files: (filename, bytes). Each is parsed; duplicates and failures are reported, never silently dropped."""
+        """files: (filename, bytes). Each is validated and parsed; the original is stored. Duplicates and failures are
+        reported with a reason, never silently dropped. Identity is the document id (arXiv id or content hash)."""
+        from researchlens.ingestion.pymupdf_ingestor import PyMuPDFIngestor
         rep = IngestReport()
         with tempfile.TemporaryDirectory() as td:
             for name, data in files:
-                path = Path(td) / (Path(name).name or "upload.pdf")
+                label = Path(name).name or "upload.pdf"
+                if len(data) > self.max_upload_bytes:
+                    rep.failed.append((name, f"file is {len(data) / 1e6:.1f} MB; the limit is {self.max_upload_bytes // (1024 * 1024)} MB")); continue
+                if not data.lstrip()[:5] == b"%PDF-":
+                    rep.failed.append((name, "not a PDF file (missing %PDF header)")); continue
+                path = Path(td) / "upload.pdf"
                 path.write_bytes(data)
-                sub = self.store.add_pdfs([path])
-                rep.added += sub.added
-                rep.duplicates += [name] * len(sub.duplicates)
-                rep.failed += [(name, e) for _, e in sub.failed]
+                try:
+                    doc = PyMuPDFIngestor().ingest(str(path), max_pages=self.max_pages)
+                except Exception as e:                                     # parse failures are reported with their reason
+                    rep.failed.append((name, f"{type(e).__name__}: {str(e).replace('upload.pdf', label)}")); continue
+                doc.source_path = label
+                if self.store.add_document(doc, status="ready"):
+                    try:
+                        sf = self.storage.put(self.workspace, doc.doc_id, data)
+                        self.store.set_file(doc.doc_id, FileInfo(sf.sha256, sf.key, sf.bytes, doc.n_pages))
+                    except Exception as e:                                 # never leave a row without its original
+                        self.store.delete(doc.doc_id)
+                        rep.failed.append((name, f"could not store the original file: {e}")); continue
+                    rep.added.append(doc.doc_id)
+                else:
+                    rep.duplicates.append(name)
         if rep.added:
             self._engines.clear()
         return rep
@@ -76,7 +110,10 @@ class Workspace:
         return n
 
     def remove(self, doc_id: str) -> bool:
+        """Delete the document's row and its stored original. (Embeddings are content-addressed and swept separately.)"""
         ok = self.store.delete(doc_id)
+        if ok:
+            self.storage.delete(self.workspace, doc_id)
         self._engines.clear()
         return ok
 

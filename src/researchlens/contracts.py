@@ -16,7 +16,7 @@ from typing import Literal, Protocol, Sequence, runtime_checkable
 
 from pydantic import BaseModel, Field
 
-SCHEMA_VERSION = "1.3"   # 1.1: page provenance (Section.pages, Chunk.page); 1.2: VerificationResult.support/explanation, Document.abstract_page; 1.3: graph node/edge types
+SCHEMA_VERSION = "1.4"   # 1.1: page provenance (Section.pages, Chunk.page); 1.2: VerificationResult.support/explanation, Document.abstract_page; 1.3: graph node/edge types; 1.4: Document.n_pages
 
 # Verification label set. Mapping from SciFact: SUPPORT->SUPPORTS, CONTRADICT->CONTRADICTS, NEI->INSUFFICIENT.
 Verdict = Literal["SUPPORTS", "CONTRADICTS", "INSUFFICIENT"]
@@ -44,6 +44,7 @@ class Document(BaseModel):
     authors: list[str] = Field(default_factory=list)
     year: int | None = None
     abstract: str = ""
+    n_pages: int | None = None                    # number of PDF pages (None for non-PDF sources)
     abstract_page: int | None = None              # 1-based page where the abstract starts (None if unknown)
     sections: list[Section]
     references: list[Reference] = Field(default_factory=list)
