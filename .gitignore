@@ -38,3 +38,4 @@ artifacts/
 .vscode/
 .claude/settings.local.json
 .claude/launch.json
+results/_rerun/
