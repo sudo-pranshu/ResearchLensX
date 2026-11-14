@@ -24,7 +24,7 @@ The review is grounded in two pieces of evidence: (a) the dataset audit on Day 1
 | R13 | SPECTER2 exposure | SPECTER2 was trained on S2 citation data, which may include QASPER/SciFact papers (document exposure, not label leakage) | Model card | Stated as a validity threat. SciDocs/SciRepEval comparisons are dropped entirely, so no unfair benchmark is reported. e5 (general-purpose) is the control |
 | R14 | Novelty | v0.1 risks implying novel methods. Hybrid retrieval with RRF, NLI claim verification and ALCE-style citation evaluation are all established | Literature | Contributions are re-stated as: (1) a **controlled, statistically sound evaluation** of these techniques for scientific QA on QASPER/SciFact, and (2) an **integrated, reproducible, CPU-runnable system**. No claim of new algorithms |
 | R15 | H3 data | No cross-paper benchmark exists in the chosen data; the 120-question set from v0.1 is not feasible in 14 days | Time | H3 is exploratory: about 10 documented comparison case studies via `Pipeline.compare` + the KG, presented qualitatively, with **no significance claims** |
-| R16 | Syllabus NLP | Classical components must not be passed off as contributions | — | Kept and labelled as "supporting": TF-IDF/BM25/LSA (H1 baselines), Logistic Regression claim classifier (Pawan), optional LDA topic facet (Gaurav). HMM/Earley are optional only if time allows |
+| R16 | Syllabus NLP | Classical components must not be passed off as contributions | — | Kept and labelled as "supporting": TF-IDF/BM25/LSA (H1 baselines), Logistic Regression claim classifier, optional LDA topic facet. HMM/Earley are optional only if time allows |
 
 ## Preliminary classical results (dev, uncommitted run, question-level CIs, superseded by EXP-H1-001)
 

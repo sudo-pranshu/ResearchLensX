@@ -31,7 +31,7 @@ python experiments/h1_retrieval.py --config configs/h1_final_test.yaml         #
    - *Citation recall* (per sentence) = 1 if J(concat(cited passages) ⇒ sentence) = entailment.
    - *Citation precision* (per citation) = 1 if the citation is needed: it entails the sentence alone, or removing it breaks entailment.
    - Each is averaged per question, then across questions.
-5. **Human evaluation:** 50 questions sampled with seed 0 from the H2 test set, two systems each, shown in random order with the system identity hidden. Per sentence: supported / partially / unsupported; per citation: correct / incorrect. 15 questions are annotated by all three members (Fleiss' κ); judge–human agreement (Cohen's κ) is computed on these items. Sheet template: `docs/human_eval_guidelines.md` (Pawan, Day 7).
+5. **Human evaluation:** 50 questions sampled with seed 0 from the H2 test set, two systems each, shown in random order with the system identity hidden. Per sentence: supported / partially / unsupported; per citation: correct / incorrect. 15 questions are annotated by all three members (Fleiss' κ); judge–human agreement (Cohen's κ) is computed on these items. Sheet template: `docs/human_eval_guidelines.md`.
 
 ## 4. Statistical reporting template
 `metric: baseline X.XXX → treatment Y.YYY, Δ = +Z.ZZZ [95% CI lo, hi], p_holm = P (cluster bootstrap, n_q questions / n_p papers)`
