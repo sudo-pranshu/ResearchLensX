@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import time
 from pathlib import Path
 from typing import Callable, Sequence
@@ -27,7 +28,7 @@ def texts_digest(texts: Sequence[str]) -> str:
 
 class EmbeddingCache:
     def __init__(self, root: str | Path | None = None):
-        self.root = Path(root) if root else DEFAULT_DIR
+        self.root = Path(root) if root else Path(os.environ.get("RLX_EMBEDDING_DIR") or DEFAULT_DIR)
         self.hits = self.misses = 0
 
     def key(self, encoder_key: str, side: str, texts: Sequence[str]) -> str:

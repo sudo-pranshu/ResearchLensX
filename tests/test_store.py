@@ -81,3 +81,64 @@ def test_usable_from_other_threads(tmp_path):
             out["err"] = repr(e)
     th = threading.Thread(target=work); th.start(); th.join()
     assert out == {"n": 2, "ids": ["a", "b"]}
+
+
+# ---- versioned schema, workspaces, status (Phase 4, step 2) -----------------------------------------------------
+def test_legacy_unversioned_database_is_upgraded_in_place(tmp_path):
+    import sqlite3
+    db = tmp_path / "legacy.sqlite"
+    con = sqlite3.connect(db)
+    con.executescript("""CREATE TABLE documents (doc_id TEXT PRIMARY KEY, title TEXT NOT NULL, year INTEGER, source TEXT NOT NULL,
+        source_path TEXT, n_sections INTEGER NOT NULL, n_references INTEGER NOT NULL, schema_version TEXT NOT NULL,
+        added_at REAL NOT NULL, json TEXT NOT NULL);""")
+    d = mk("old", "Legacy Paper", 2019)
+    con.execute("INSERT INTO documents VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (d.doc_id, d.title, d.year, d.source, None, 1, 0, "1.0", 1.0, d.model_dump_json()))
+    con.commit(); con.close()
+    with CorpusStore(db) as s:
+        from researchlens.store.migrations import LATEST
+        assert s.schema_version() == LATEST and s.count() == 1
+        assert s.get("old").title == "Legacy Paper"
+        info = s.info("old")
+        assert info.status == "ready" and info.error is None and info.sha256 is None      # defaults for migrated rows
+        assert s.integrity_check() == "ok"
+
+
+def test_failed_migration_leaves_previous_version_intact(tmp_path, monkeypatch):
+    import sqlite3
+    from researchlens.store import migrations
+    db = tmp_path / "x.sqlite"
+    CorpusStore(db).close()
+    con = sqlite3.connect(db)
+    monkeypatch.setattr(migrations, "MIGRATIONS", migrations.MIGRATIONS + [(99, "CREATE TABLE t(a); THIS IS NOT SQL;")])
+    with pytest.raises(sqlite3.Error):
+        migrations.migrate(con)
+    assert migrations.user_version(con) == migrations.LATEST and con.execute("SELECT name FROM sqlite_master WHERE name='t'").fetchone() is None
+
+
+def test_workspaces_are_isolated_and_may_reuse_doc_ids(tmp_path):
+    db = tmp_path / "ws.sqlite"
+    a, b = CorpusStore(db, workspace="alice"), CorpusStore(db, workspace="bob")
+    assert a.add_document(mk("same", "Alice's paper")) and b.add_document(mk("same", "Bob's paper"))
+    assert a.get("same").title == "Alice's paper" and b.get("same").title == "Bob's paper"
+    a.add_document(mk("only-a"))
+    assert b.get("only-a") is None and b.count() == 1 and a.count() == 2
+    assert a.delete("same") and b.get("same") is not None            # deleting in one workspace never touches the other
+
+
+def test_status_lifecycle_and_search_set_only_contains_ready(tmp_path):
+    s = CorpusStore(tmp_path / "st.sqlite")
+    s.add_document(mk("p"), status="queued")
+    assert s.documents() == [] and s.info("p").status == "queued"      # not searchable until ready
+    s.set_status("p", "failed", "scanned PDF: no text layer")
+    assert s.info("p").error == "scanned PDF: no text layer" and s.count("failed") == 1
+    s.set_status("p", "ready")
+    assert [d.doc_id for d in s.documents()] == ["p"] and s.info("p").error is None
+    with pytest.raises(ValueError):
+        s.set_status("p", "bogus")
+
+
+def test_wal_and_busy_timeout_enabled(tmp_path):
+    s = CorpusStore(tmp_path / "w.sqlite")
+    assert s._db.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
+    assert s._db.execute("PRAGMA busy_timeout").fetchone()[0] == 5000

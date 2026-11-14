@@ -22,7 +22,12 @@ from researchlens.workspace import RETRIEVERS, Settings, Workspace  # noqa: E402
 
 st.set_page_config(page_title="ResearchLens X", page_icon="🔬", layout="wide")
 C.inject_css()
-DB = os.environ.get("RLX_DB", str(ROOT / "data" / "processed" / "library.sqlite"))
+from researchlens.settings import AppConfig  # noqa: E402
+try:
+    CFG = AppConfig.from_env()
+except ValueError as _e:
+    st.error(str(_e)); st.stop()
+DB = str(CFG.db_path)
 
 
 @st.cache_resource
