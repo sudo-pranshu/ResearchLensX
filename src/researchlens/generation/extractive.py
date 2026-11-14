@@ -1,4 +1,4 @@
-"""ExtractiveGenerator: CPU-only, deterministic, no LLM. Owner: Pawan (initial version by Pranshu).
+"""ExtractiveGenerator: CPU-only, deterministic, no LLM.
 
 For each of the top-n passages it selects the sentence with the highest lexical overlap
 with the question and cites that passage. It is a genuine (weak) baseline, not a mock:
@@ -12,6 +12,7 @@ import time
 from researchlens.contracts import Answer, AnswerSentence, RetrievedPassage
 from researchlens.retrieval.lexical import tokenize
 
+_CAPTION = re.compile(r"^(figure|fig\.|table)\s*\d+", re.I)
 _SENT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9(\[])")
 
 
@@ -32,7 +33,9 @@ class ExtractiveGenerator:
         sentences = []
         for i, p in enumerate(passages[: self.max_sentences]):
             sents = split_sentences(p.chunk.text) or [p.chunk.text]
-            best = max(sents, key=lambda s: (len(q & set(tokenize(s))), -sents.index(s)))
+            # figure/table captions are poor answers: prefer running text when the passage has any
+            body = [s for s in sents if not _CAPTION.match(s)] or sents
+            best = max(body, key=lambda s: (len(q & set(tokenize(s))), -sents.index(s)))
             sentences.append(AnswerSentence(text=best, citations=[i]))
         return Answer(question=question, sentences=sentences, passages=passages, mode="extractive",
                       generator=self.name, timings_ms={"generate": (time.perf_counter() - t) * 1e3})

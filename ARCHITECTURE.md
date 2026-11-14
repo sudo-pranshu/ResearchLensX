@@ -6,21 +6,21 @@ Authoritative summary: [PROJECT_BIBLE.md §C](PROJECT_BIBLE.md#c-architecture-su
 
 ```mermaid
 flowchart LR
-  subgraph G[Gaurav: document intelligence & app]
+  subgraph G[Document intelligence & app]
     PDF[(PDF)] --> ING[Ingestor<br/>PyMuPDF / GROBID*]
     ING --> DOC[Document]
     DOC --> CH[chunk_document]
     KGB[GraphBuilder] --> KG[KnowledgeGraph]
     APP[Streamlit app]
   end
-  subgraph P[Pranshu: retrieval & integration]
+  subgraph P[Retrieval & integration]
     CH --> CI[ChunkIndex]
     CI --> BM[BM25 / TF-IDF / LSA]
     CI --> DN[SPECTER2 / e5 + FAISS]
     BM & DN --> RRF[RRF fusion]
     PIPE[Pipeline facade]
   end
-  subgraph W[Pawan: verification & generation]
+  subgraph W[Verification & generation]
     GEN[Generator<br/>extractive / LLM-RAG]
     VER[Verifier<br/>NLI]
   end
@@ -35,17 +35,17 @@ flowchart LR
 ```
 \* optional service with an automatic fallback.
 
-## 2. Contracts (`src/researchlens/contracts.py`, owner Pranshu)
+## 2. Contracts (`src/researchlens/contracts.py`)
 
 | Contract | Producer | Consumer | Key fields |
 |---|---|---|---|
-| `Document` | Ingestor (Gaurav), `load_qasper_documents` (Pranshu) | chunker, GraphBuilder, app | `doc_id, title, authors, year, abstract, sections[Section], references[Reference], source` |
-| `Chunk` | `chunk_document` (Gaurav) | `ChunkIndex` | `chunk_id = "{doc_id}::s{i}::p{j}::w{k}", doc_id, section, text, order` |
+| `Document` | Ingestor, `load_qasper_documents` (Pranshu) | chunker, GraphBuilder, app | `doc_id, title, authors, year, abstract, sections[Section], references[Reference], source` |
+| `Chunk` | `chunk_document` | `ChunkIndex` | `chunk_id = "{doc_id}::s{i}::p{j}::w{k}", doc_id, section, text, order` |
 | `RetrievedPassage` | `PassageRetriever` (Pranshu) | Generator, Verifier, app | `chunk, score, rank (1-based), retriever` |
-| `Claim` | Generator / claim extractor (Pawan) | Verifier | `claim_id, text, source` |
-| `VerificationResult` | Verifier (Pawan) | Pipeline, GraphBuilder, app | `label ∈ {SUPPORTS, CONTRADICTS, INSUFFICIENT}, confidence, evidence[EvidenceJudgement], model, is_mock` |
-| `Answer` | Generator (Pawan), annotated by Pipeline | app, H2 evaluation | `sentences[AnswerSentence(text, citations, verification)], passages, mode, generator, is_mock, timings_ms` |
-| `KnowledgeGraph` | GraphBuilder (Gaurav) | app | `nodes[KGNode], edges[KGEdge]` |
+| `Claim` | Generator / claim extractor | Verifier | `claim_id, text, source` |
+| `VerificationResult` | Verifier | Pipeline, GraphBuilder, app | `label ∈ {SUPPORTS, CONTRADICTS, INSUFFICIENT}, confidence, evidence[EvidenceJudgement], model, is_mock` |
+| `Answer` | Generator, annotated by Pipeline | app, H2 evaluation | `sentences[AnswerSentence(text, citations, verification)], passages, mode, generator, is_mock, timings_ms` |
+| `KnowledgeGraph` | GraphBuilder | app | `nodes[KGNode], edges[KGEdge]` |
 
 Interfaces (typing `Protocol`, checked by `isinstance` in tests):
 `Ingestor.ingest(pdf_path) -> Document` · `PassageRetriever.search(query, k, doc_ids) -> list[RetrievedPassage]` · `Generator.generate(question, passages) -> Answer` · `Verifier.verify(claim, passages) -> VerificationResult` · `GraphBuilder.build(documents, verifications) -> KnowledgeGraph`.
@@ -76,12 +76,12 @@ The app never imports `retrieval/`, `verification/` or `generation/` directly, s
 
 ```
 src/researchlens/
-  contracts.py  pipeline.py  mocks.py           # Pranshu (shared, PR-gated)
-  retrieval/    evaluation/metrics.py stats.py  data/qasper.py   # Pranshu
-  verification/ generation/  evaluation/attribution.py  data/scifact.py   # Pawan
-  ingestion/    processing/  knowledge_graph/   # Gaurav
-app/            # Gaurav (Streamlit + optional FastAPI)
-experiments/    # h1_* Pranshu, h2_* Pawan
+  contracts.py  pipeline.py  mocks.py           # shared contracts and facade
+  retrieval/    evaluation/  data/             # retrieval, metrics, stats, loaders
+  verification/ generation/                    # NLI verification, generators
+  ingestion/    processing/  knowledge_graph/  # PDF -> Document -> chunks -> graph
+app/            # Streamlit (+ optional FastAPI)
+experiments/    # h1_* retrieval, h2_* verification and RAG
 configs/        # YAML experiment configs, one per run family
 data/sample/    # committed synthetic fixtures (contract examples)
 data/raw/       # NOT committed (download scripts in scripts/)
@@ -91,10 +91,40 @@ notebooks/      # Colab drivers (thin: clone repo, run scripts, save to Drive)
 
 ## 6. Compute placement
 
-| Job | Where | Owner | Output, cached at |
+| Job | Where | Output, cached at |
 |---|---|---|---|
-| BM25/TF-IDF/LSA, all tests, app | any laptop (CPU) | all | — |
-| SPECTER2/e5/SciBERT encoding of QASPER + SciFact | Colab GPU | Pranshu | `artifacts/indexes/*.npy` (Drive) |
-| NLI zero-shot on SciFact dev (~300 claims) | CPU acceptable | Pawan | `results/h2/` |
-| Optional NLI fine-tune on SciFact train | Colab GPU | Pawan's script, run by Pranshu | Drive checkpoint + model card |
-| LLM generation for H2 | Colab GPU | Pawan's script, run by Pranshu | `results/h2/generations_*.jsonl` (committed) |
+| BM25/TF-IDF/LSA, all tests, app | any laptop (CPU) | — |
+| SPECTER2/e5/SciBERT encoding of QASPER + SciFact | Colab GPU | `artifacts/indexes/*.npy` (Drive) |
+| NLI zero-shot on SciFact dev (~300 claims) | CPU acceptable | `results/h2/` |
+| Optional NLI fine-tune on SciFact train | Colab GPU | Drive checkpoint + model card |
+| LLM generation for H2 | Colab GPU | `results/h2/generations_*.jsonl` (committed) |
+
+## 7. Product layer (added 2026-11-14)
+
+```mermaid
+flowchart LR
+  PDF[(PDFs)] --> ING[PyMuPDFIngestor<br/>pages, sections, references]
+  ING --> STORE[(CorpusStore<br/>SQLite)]
+  STORE --> WS[Workspace service]
+  WS --> RET[ChunkIndex<br/>BM25/TF-IDF + dedup + section filter<br/>optional cross-encoder rerank]
+  RET --> QA[MultiDocQA<br/>balance papers, references, abstention]
+  QA --> VER[NLIVerifier<br/>status, explanation, calibrated confidence]
+  STORE --> KG[GraphBuilder<br/>extraction with provenance]
+  VER -. gated NLI links .-> KG
+  KG --> CMP[comparison table]
+  KG --> GAPS[find_gaps]
+  CMP & GAPS --> REV[Review: MD / HTML / PDF]
+  WS --> APP[Streamlit app]
+```
+
+| Module | Role | Notable guarantees |
+|---|---|---|
+| `ingestion/pymupdf_ingestor.py` | PDF → `Document` | page of every paragraph; scanned PDFs rejected |
+| `store/corpus.py` | persistent library | duplicate-safe, thread-safe, schema-checked |
+| `retrieval/rerank.py`, `postprocess.py` | rerank, redundancy suppression, section filter | filters applied before ranking |
+| `qa/engine.py` | multi-document QA | every sentence cites passages with page; abstains visibly |
+| `verification/nli.py`, `evaluation/calibration.py` | claim status, explanation, calibration | labels use raw probabilities; confidence calibrated |
+| `knowledge_graph/` | graph with provenance | no edge without evidence; mock verifier cannot create relations |
+| `analysis/{compare,gaps,review}.py` | comparison, gaps, review export | collection-scoped; no novelty claims; every statement cited |
+| `workspace.py` | the only entry point for the app | reports real / fallback / MOCK per component |
+| `app/` | Streamlit UI | MOCK banner; errors and empty states handled |

@@ -1,0 +1,62 @@
+{
+  "rag": {
+    "n_sentences": 0.86,
+    "n_abstain_sentences": 0.28,
+    "citation_recall": 0.05555555555555555,
+    "citation_precision": 0.0625,
+    "n_citations": 0.15,
+    "answer_f1": 0.1960049801867692,
+    "n_kept": 0.0,
+    "n_pruned": 0.0,
+    "n_reassigned": 0.0,
+    "n_dropped": 0.0
+  },
+  "verify_only": {
+    "n_sentences": 0.86,
+    "n_abstain_sentences": 0.28,
+    "citation_recall": 0.05555555555555555,
+    "citation_precision": 0.0625,
+    "n_citations": 0.15,
+    "answer_f1": 0.1960049801867692,
+    "n_kept": 0.04,
+    "n_pruned": 0.01,
+    "n_reassigned": 0.6,
+    "n_dropped": 0.21
+  },
+  "verified": {
+    "n_sentences": 0.65,
+    "n_abstain_sentences": 0.45,
+    "citation_recall": 0.696969696969697,
+    "citation_precision": 0.6954545454545454,
+    "n_citations": 0.8,
+    "answer_f1": 0.15911728784099638,
+    "n_kept": 0.04,
+    "n_pruned": 0.01,
+    "n_reassigned": 0.6,
+    "n_dropped": 0.21
+  },
+  "ablation:no_reassign": {
+    "n_sentences": 0.65,
+    "n_abstain_sentences": 0.45,
+    "citation_recall": 0.09090909090909091,
+    "citation_precision": 0.09090909090909091,
+    "n_citations": 0.08,
+    "answer_f1": 0.15911728784099638,
+    "n_kept": 0.04,
+    "n_pruned": 0.01,
+    "n_reassigned": 0.0,
+    "n_dropped": 0.21
+  },
+  "ablation:no_drop": {
+    "n_sentences": 0.86,
+    "n_abstain_sentences": 0.28,
+    "citation_recall": 0.525462962962963,
+    "citation_precision": 0.53125,
+    "n_citations": 0.86,
+    "answer_f1": 0.1960049801867692,
+    "n_kept": 0.04,
+    "n_pruned": 0.01,
+    "n_reassigned": 0.6,
+    "n_dropped": 0.21
+  }
+}

@@ -1,0 +1,3 @@
+{"doc_id": 11, "title": "Drug A trial", "abstract": ["We ran a randomized trial.", "Drug A reduces blood pressure in adults.", "Side effects were rare."], "structured": false}
+{"doc_id": 22, "title": "Drug A null result", "abstract": ["A second cohort was studied.", "Drug A does not reduce blood pressure."], "structured": false}
+{"doc_id": 33, "title": "Unrelated", "abstract": ["Soil bacteria fix nitrogen."], "structured": false}

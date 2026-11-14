@@ -1,15 +1,14 @@
 """Shared data contracts and module interfaces for ResearchLens X.
 
-OWNER: Pranshu (architecture). Changing anything in this file requires a PR labelled
-`interface-change`, approval from Pranshu, and a CHANGELOG entry. Additive optional
+Changing anything in this file requires a CHANGELOG entry. Additive optional
 fields are minor changes; renaming/removing fields or changing types is a breaking
 change and bumps SCHEMA_VERSION.
 
 Data flow:
-  Ingestor (Gaurav) -> Document -> chunk_document (Gaurav) -> list[Chunk]
+  Ingestor -> Document -> chunk_document -> list[Chunk]
   -> PassageRetriever (Pranshu) -> list[RetrievedPassage]
-  -> Generator (Pawan) -> Answer -> Verifier (Pawan) -> VerificationResult per sentence
-  -> GraphBuilder (Gaurav) -> KnowledgeGraph -> app (Gaurav)
+  -> Generator -> Answer -> Verifier -> VerificationResult per sentence
+  -> GraphBuilder -> KnowledgeGraph -> app
 """
 from __future__ import annotations
 
@@ -17,14 +16,14 @@ from typing import Literal, Protocol, Sequence, runtime_checkable
 
 from pydantic import BaseModel, Field
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.3"   # 1.1: page provenance (Section.pages, Chunk.page); 1.2: VerificationResult.support/explanation, Document.abstract_page; 1.3: graph node/edge types
 
 # Verification label set. Mapping from SciFact: SUPPORT->SUPPORTS, CONTRADICT->CONTRADICTS, NEI->INSUFFICIENT.
 Verdict = Literal["SUPPORTS", "CONTRADICTS", "INSUFFICIENT"]
 VERDICTS: tuple[str, ...] = ("SUPPORTS", "CONTRADICTS", "INSUFFICIENT")
 
 
-# ---------------------------------------------------------------- documents (Gaurav)
+# ---------------------------------------------------------------- documents
 class Reference(BaseModel):
     raw: str
     title: str | None = None
@@ -36,6 +35,7 @@ class Section(BaseModel):
     title: str
     paragraphs: list[str]
     level: int = 1
+    pages: list[int | None] = Field(default_factory=list)   # 1-based page of each paragraph's first line; [] if unknown
 
 
 class Document(BaseModel):
@@ -44,6 +44,7 @@ class Document(BaseModel):
     authors: list[str] = Field(default_factory=list)
     year: int | None = None
     abstract: str = ""
+    abstract_page: int | None = None              # 1-based page where the abstract starts (None if unknown)
     sections: list[Section]
     references: list[Reference] = Field(default_factory=list)
     source: Literal["pymupdf", "grobid", "qasper", "fixture"]
@@ -57,6 +58,7 @@ class Chunk(BaseModel):
     section: str
     text: str
     order: int                                    # position of the chunk within its document
+    page: int | None = None                       # 1-based PDF page where the chunk starts; None if the source has no pages
 
     def index_text(self, title: str = "") -> str:
         """Text handed to retrievers (section-prefixed, see EXPERIMENT_PROTOCOL H1 ablations)."""
@@ -72,7 +74,7 @@ class RetrievedPassage(BaseModel):
     retriever: str                                # e.g. "bm25", "rrf(bm25+specter2)"
 
 
-# ---------------------------------------------------------------- verification (Pawan)
+# ---------------------------------------------------------------- verification
 class Claim(BaseModel):
     claim_id: str
     text: str
@@ -94,9 +96,11 @@ class VerificationResult(BaseModel):
     evidence: list[EvidenceJudgement]
     model: str                                    # HF model id + revision, or "mock-*"
     is_mock: bool = False
+    support: Literal["direct", "combined"] | None = None   # SUPPORTS only: one passage entails it, or several passages jointly
+    explanation: str | None = None                # deterministic, template-built from the judgements (not generated text)
 
 
-# ---------------------------------------------------------------- generation (Pawan)
+# ---------------------------------------------------------------- generation
 class AnswerSentence(BaseModel):
     text: str
     citations: list[int] = Field(default_factory=list)   # indices into Answer.passages (0-based)
@@ -114,16 +118,18 @@ class Answer(BaseModel):
     schema_version: str = SCHEMA_VERSION
 
 
-# ---------------------------------------------------------------- knowledge graph (Gaurav)
-NodeType = Literal["paper", "section", "entity", "claim"]
-EdgeType = Literal["has_section", "mentions", "cites", "supports", "contradicts", "shares_entity"]
+# ---------------------------------------------------------------- knowledge graph
+NodeType = Literal["paper", "section", "entity", "claim", "author", "finding", "limitation"]
+EdgeType = Literal["has_section", "mentions", "cites", "supports", "contradicts", "shares_entity",
+                   "authored_by", "uses_method", "evaluates_on", "uses_metric", "reports_finding", "has_limitation",
+                   "similar_problem"]
 
 
 class KGNode(BaseModel):
     id: str
     type: NodeType
     label: str
-    attrs: dict = Field(default_factory=dict)     # entity nodes: {"entity_type": "dataset"|"method"|"metric"|"task"}
+    attrs: dict = Field(default_factory=dict)     # every extracted node/edge carries attrs["evidence"] = [{doc_id, chunk_id, section, page, quote}]; entity nodes: {"entity_type": "dataset"|"method"|"metric"|"task"}
 
 
 class KGEdge(BaseModel):

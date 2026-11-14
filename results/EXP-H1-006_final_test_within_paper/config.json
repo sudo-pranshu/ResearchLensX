@@ -1,0 +1,89 @@
+{
+  "config": "configs/h1_final_test.yaml",
+  "qasper": "data/raw/qasper/qasper-test-v0.3.json",
+  "systems": [
+    "bm25",
+    "tfidf",
+    "lsa",
+    "e5",
+    "rrf:bm25+e5",
+    "linear:bm25+e5"
+  ],
+  "setting": "within_paper",
+  "no_section_prefix": false,
+  "no_floats": false,
+  "primary": "recall@5",
+  "rrf_k": 60,
+  "depth": 100,
+  "alpha": 0.5,
+  "bm25_k1": 1.5,
+  "bm25_b": 0.75,
+  "lsa_dim": 256,
+  "batch_size": 8,
+  "cache_dir": null,
+  "split_name": "test",
+  "limit": null,
+  "out": "results",
+  "title_query": false,
+  "run_name": "EXP-H1-006_final_test_within_paper",
+  "unit": "paragraph",
+  "window_words": 128,
+  "dataset": "QASPER v0.3",
+  "data_stats": {
+    "papers": 416,
+    "paragraphs": 22588,
+    "questions": 1451,
+    "questions_without_evidence": 100,
+    "evidence_strings": 5744,
+    "evidence_unmatched": 222
+  },
+  "n_questions": 1351,
+  "n_papers": 414,
+  "stats": "paper-level cluster bootstrap (10k) + cluster sign-flip randomisation, Holm per hybrid",
+  "git": "a6015ff",
+  "environment": {
+    "python": "3.12.11",
+    "platform": "macOS-27.2.1-arm64-arm-64bit",
+    "torch": "2.15.0",
+    "device": "mps"
+  },
+  "finished_at": "2026-11-13T12:26:47+0530",
+  "fit_seconds": {
+    "bm25": 0.74,
+    "tfidf": 0.57,
+    "lsa": 4.16,
+    "e5": 387.27
+  },
+  "models": {
+    "bm25": {
+      "model": "bm25"
+    },
+    "tfidf": {
+      "model": "tfidf"
+    },
+    "lsa": {
+      "model": "lsa-256"
+    },
+    "e5": {
+      "model": "intfloat/e5-base-v2",
+      "revision": "f52bf8ec8c7124536f0efb74aca902b2995e5bcd",
+      "query_prefix": "query: ",
+      "doc_prefix": "passage: ",
+      "max_seq_length": 512,
+      "pooling": "model-default"
+    }
+  },
+  "embedding_cache": {
+    "hits": 0,
+    "misses": 2
+  },
+  "query_encode_seconds": 0.06,
+  "search_seconds": {
+    "bm25": 0.12,
+    "tfidf": 2.63,
+    "lsa": 0.47,
+    "e5": 1.98,
+    "rrf:bm25+e5": 2.1,
+    "linear:bm25+e5": 2.12
+  }
+}

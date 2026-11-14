@@ -1,0 +1,10 @@
+# EXP-H1-004: SciFact claim -> abstract retrieval, dev (test labels hidden). Open-corpus H1 test.
+root: data/raw/scifact/data
+split: dev
+systems: [bm25, tfidf, lsa, e5, scibert, specter2,
+          "rrf:bm25+e5", "rrf:bm25+specter2", "rrf:bm25+scibert"]
+primary: ndcg@10
+rrf_k: 60
+depth: 100
+batch_size: 32
+out: results

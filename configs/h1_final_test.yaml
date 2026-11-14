@@ -1,0 +1,17 @@
+# EXP-H1-006: H1 FINAL TEST, QASPER v0.3 test split, within-paper. RUN EXACTLY ONCE.
+# Pre-registered (PROJECT_BIBLE §B, ADR-009): treatment = RRF(k=60, depth=100) of BM25 + e5-base-v2 (D*, chosen on dev).
+# Baselines: BM25, TF-IDF, LSA, D*. linear fusion is a secondary, non-confirmatory hybrid.
+# Decision rule: supported only if RRF beats EVERY baseline, Holm-adjusted p < .05 with CI excluding 0.
+qasper: data/raw/qasper/qasper-test-v0.3.json
+split_name: test
+setting: within_paper
+systems: [bm25, tfidf, lsa, e5, "rrf:bm25+e5", "linear:bm25+e5"]
+primary: recall@5
+rrf_k: 60
+depth: 100
+alpha: 0.5
+bm25_k1: 1.5
+bm25_b: 0.75
+lsa_dim: 256
+batch_size: 8
+out: results

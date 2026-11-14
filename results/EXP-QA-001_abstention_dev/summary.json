@@ -1,0 +1,56 @@
+{
+  "n_questions": 1005,
+  "n_unanswerable": 95,
+  "unanswerable_rate": 0.095,
+  "auroc": 0.636,
+  "auroc_ci95_paper_bootstrap": [
+    0.583,
+    0.691
+  ],
+  "thresholds": [
+    {
+      "threshold": 0.2,
+      "abstain_rate": 0.026,
+      "precision": 0.308,
+      "recall": 0.084,
+      "answerable_wrongly_abstained": 0.02
+    },
+    {
+      "threshold": 0.3,
+      "abstain_rate": 0.08,
+      "precision": 0.2,
+      "recall": 0.168,
+      "answerable_wrongly_abstained": 0.07
+    },
+    {
+      "threshold": 0.4,
+      "abstain_rate": 0.191,
+      "precision": 0.135,
+      "recall": 0.274,
+      "answerable_wrongly_abstained": 0.182
+    },
+    {
+      "threshold": 0.5,
+      "abstain_rate": 0.261,
+      "precision": 0.153,
+      "recall": 0.421,
+      "answerable_wrongly_abstained": 0.244
+    },
+    {
+      "threshold": 0.6,
+      "abstain_rate": 0.483,
+      "precision": 0.13,
+      "recall": 0.663,
+      "answerable_wrongly_abstained": 0.464
+    },
+    {
+      "threshold": 0.7,
+      "abstain_rate": 0.688,
+      "precision": 0.116,
+      "recall": 0.842,
+      "answerable_wrongly_abstained": 0.671
+    }
+  ],
+  "dataset": "QASPER v0.3 dev",
+  "retriever": "bm25 within-paper top-5"
+}

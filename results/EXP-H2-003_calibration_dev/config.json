@@ -1,0 +1,15 @@
+{
+  "experiment": "EXP-H2-003",
+  "source": "results/EXP-H2-001_scifact_verifier_dev/per_query.jsonl",
+  "k_folds": 5,
+  "seed": 0,
+  "n_boot": 2000,
+  "git": "9d3876e-dirty",
+  "environment": {
+    "python": "3.12.11",
+    "platform": "macOS-27.2.1-arm64-arm-64bit",
+    "torch": "2.15.0",
+    "device": "mps"
+  },
+  "dataset": "SciFact 2020 release (dev, via EXP-H2-001 probabilities)"
+}

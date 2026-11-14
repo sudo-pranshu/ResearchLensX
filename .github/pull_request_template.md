@@ -1,9 +1,8 @@
 ## What & why
 Closes #
 
-## Owner check
-- [ ] I only edited paths I own (TEAM_RESPONSIBILITIES.md), or the owner approved
-- [ ] `contracts.py` untouched, or PR labelled `interface-change` + fixtures + CHANGELOG updated
+## Scope check
+- [ ] `contracts.py` untouched, or change is versioned + fixtures + CHANGELOG updated
 
 ## Validation
 - [ ] `python -m pytest -q` passes locally

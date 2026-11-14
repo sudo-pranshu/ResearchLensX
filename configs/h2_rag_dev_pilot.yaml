@@ -1,0 +1,17 @@
+# EXP-H2-002 (PILOT): RAG vs verified RAG, QASPER dev, small local generator.
+# The final H2 run uses a 7-8B generator on Colab (issue #20) and the QASPER test split.
+qasper: data/raw/qasper/qasper-dev-v0.3.json
+split_name: dev
+n_questions: 100
+seed: 0
+retriever: "rrf:bm25+e5"            # pre-registered hybrid with D* = e5-base-v2 (ADR-009)
+k: 5
+generator: Qwen/Qwen2.5-1.5B-Instruct
+max_new_tokens: 160
+verifier: MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli
+verifier_granularity: passage       # best on SciFact dev (EXP-H2-001); H2 is evaluated on QASPER
+support_threshold: 0.5
+contradict_threshold: 0.5
+judge: roberta-large-mnli
+judge_threshold: 0.5
+out: results

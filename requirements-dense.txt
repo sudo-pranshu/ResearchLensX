@@ -4,3 +4,5 @@ transformers>=4.40
 sentence-transformers>=2.7
 adapters>=1.0
 faiss-cpu>=1.8
+sentencepiece>=0.2
+protobuf>=4.25

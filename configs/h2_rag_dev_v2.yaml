@@ -1,0 +1,20 @@
+# EXP-H2-004 (dev PILOT v2): same 100 dev questions, retriever, verifier and thresholds as EXP-H2-002; ONLY change = one-shot citation prompt.
+# Reason: EXP-H2-002 was inconclusive because the 1.5B generator emitted 0.15 citations/answer, so verified RAG's gain came from the
+# verifier ADDING citations. Manipulation check set before running: baseline RAG should now cite (>= 0.7 citations per answer).
+# If it does, the verified-vs-baseline comparison is interpretable; if not, the 1.5B generator is unsuitable and a larger one on Colab is needed.
+qasper: data/raw/qasper/qasper-dev-v0.3.json
+split_name: dev
+n_questions: 100
+seed: 0
+retriever: "rrf:bm25+e5"
+k: 5
+generator: Qwen/Qwen2.5-1.5B-Instruct
+max_new_tokens: 160
+prompt: one_shot
+verifier: MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli
+verifier_granularity: passage
+support_threshold: 0.5
+contradict_threshold: 0.5
+judge: roberta-large-mnli
+judge_threshold: 0.5
+out: results

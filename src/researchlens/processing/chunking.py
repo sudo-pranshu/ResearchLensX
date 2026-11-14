@@ -53,10 +53,12 @@ def chunk_document(doc, max_tokens: int = 256, overlap: int = 32, include_abstra
 
     sections = list(doc.sections)
     if include_abstract and doc.abstract:
-        sections = [CSection(title="Abstract", paragraphs=[doc.abstract])] + sections
+        sections = [CSection(title="Abstract", paragraphs=[doc.abstract], pages=[getattr(doc, "abstract_page", None)])] + sections
     out = []
     for si, sec in enumerate(sections):
+        pages = list(getattr(sec, "pages", []) or [])
         for c in section_aware_chunks([Section(sec.title, sec.paragraphs)], max_tokens, overlap):
+            page = pages[c.para_index] if c.para_index < len(pages) else None
             out.append(CChunk(chunk_id=f"{doc.doc_id}::s{si}::p{c.para_index}::w{c.window}",
-                              doc_id=doc.doc_id, section=sec.title, text=c.text, order=len(out)))
+                              doc_id=doc.doc_id, section=sec.title, text=c.text, order=len(out), page=page))
     return out
