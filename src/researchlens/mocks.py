@@ -1,4 +1,4 @@
-"""Mock components so every member can develop against the contracts before the real
+"""Mock components so every module can be developed against the contracts before the real
 modules exist. Every mock sets is_mock=True; the app MUST show a visible "MOCK" badge for
 any output where Answer.is_mock or VerificationResult.is_mock is True (see ARCHITECTURE.md).
 """

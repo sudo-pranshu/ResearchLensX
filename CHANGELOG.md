@@ -1,6 +1,6 @@
 # Changelog
 
-Format: date · type (added / changed / interface / fixed / result) · description · owner.
+Format: date · type (added / changed / interface / fixed / result) · description.
 
 ## 2026-11-05 (Day 1)
 - added · Initial scaffold: contracts v1.0, `Pipeline`, mocks, fixtures, retrieval (BM25/TF-IDF/LSA/RRF/linear), evaluation (metrics, clustered stats), QASPER loader, chunker, demo CLI, CI · Pranshu
@@ -10,9 +10,9 @@ Format: date · type (added / changed / interface / fixed / result) · descripti
 
 ## 2026-11-05 (Day 1, experimental sprint)
 - added · Dense retrieval: persistent embedding cache (key includes HF revision + corpus digest), FAISS IndexFlatIP, length-sorted batching, query priming; SPECTER2 (proximity + adhoc_query adapters), e5-base-v2, SciBERT-mean encoders; `retrieval/registry.py`; `evaluation/reporting.py` (JSON + JSONL + CSV) · Pranshu
-- added · SciFact loader + download script + audit (`data/scifact.py`), SciFact claim→abstract retrieval experiment · Pranshu (SciFact loader ownership → Pawan)
-- added · Real NLI verifier (`verification/nli.py`, label map read from model config), TF-IDF+LR baseline, classification metrics with claim-clustered CIs, SciFact verifier experiment · Pranshu (ownership → Pawan)
-- added · H2 pipeline: `LLMRAGGenerator` (open-weight LLM, cached generations), claim extraction, `VerifiedReviser` (prune / reassign / drop contradicted / drop unsupported / verify-only ablation), ALCE-style citation P/R with an independent judge, QASPER answer-F1 · Pranshu (ownership → Pawan)
+- added · SciFact loader + download script + audit (`data/scifact.py`), SciFact claim→abstract retrieval experiment · Pranshu
+- added · Real NLI verifier (`verification/nli.py`, label map read from model config), TF-IDF+LR baseline, classification metrics with claim-clustered CIs, SciFact verifier experiment · Pranshu
+- added · H2 pipeline: `LLMRAGGenerator` (open-weight LLM, cached generations), claim extraction, `VerifiedReviser` (prune / reassign / drop contradicted / drop unsupported / verify-only ablation), ALCE-style citation P/R with an independent judge, QASPER answer-F1 · Pranshu
 - added · `build_pipeline()` with explicit fallbacks + `RevisingPipeline`; contracts unchanged (additive only) · Pranshu
 - added · Section-agnostic window ablation (`--unit window`), H1 ablation runner · Pranshu
 - fixed · Claim extraction skipped sentences of <3 words, so short claims went unverified; now only abstentions/wordless fragments are skipped · Pranshu

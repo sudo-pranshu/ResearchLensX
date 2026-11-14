@@ -1,6 +1,6 @@
-"""PyMuPDF ingestor. Owner: Gaurav. STATUS: not implemented (Day 1-2 task, issue G1).
+"""PyMuPDF ingestor. STATUS: not implemented.
 
-Spec (see docs/development/GAURAV_WORKFLOW.md §G1):
+Spec:
   ingest(pdf_path) -> contracts.Document with source="pymupdf"
   * doc_id = sha1(file bytes)[:12] unless an arXiv id is found in the first page text
   * title = largest-font text span on page 1 (fallback: PDF metadata title, then filename)

@@ -1,4 +1,4 @@
-"""SciFact loader (Wadden et al., 2020; CC BY-NC 2.0). Owner: Pawan (initial version: Pranshu, sprint).
+"""SciFact loader (Wadden et al., 2020; CC BY-NC 2.0).
 
 Files (data/raw/scifact/data/): corpus.jsonl, claims_{train,dev,test}.jsonl.
   corpus: {"doc_id": int, "title": str, "abstract": [sentence, ...], "structured": bool}

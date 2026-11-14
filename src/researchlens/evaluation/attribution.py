@@ -1,4 +1,4 @@
-"""Answer-level evaluation for H2. Owner: Pawan (initial: Pranshu, sprint).
+"""Answer-level evaluation for H2.
 
 Citation recall / precision follow ALCE (Gao et al., 2023), with an NLI *judge* that must
 differ from the pipeline's verifier:

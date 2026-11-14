@@ -1,4 +1,4 @@
-"""ExtractiveGenerator: CPU-only, deterministic, no LLM. Owner: Pawan (initial version by Pranshu).
+"""ExtractiveGenerator: CPU-only, deterministic, no LLM.
 
 For each of the top-n passages it selects the sentence with the highest lexical overlap
 with the question and cites that passage. It is a genuine (weak) baseline, not a mock:

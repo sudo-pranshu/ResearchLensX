@@ -1,5 +1,4 @@
-"""Classical verifier baseline: hand-built lexical features + Logistic Regression (3-way).
-Owner: Pawan (initial version: Pranshu, sprint). A supporting syllabus component, not a contribution.
+"""Classical verifier baseline: hand-built lexical features + Logistic Regression (3-way). A supporting syllabus component, not a contribution.
 
 Features for (claim, premise sentences):
   tf-idf cosine to the whole premise and to the best sentence, token Jaccard with the best

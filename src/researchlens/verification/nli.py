@@ -1,4 +1,4 @@
-"""NLI-based claim verification. Owner: Pawan (initial version: Pranshu, sprint).
+"""NLI-based claim verification.
 
 Labels follow contracts.Verdict: SUPPORTS / CONTRADICTS / INSUFFICIENT
 (INSUFFICIENT is displayed as "NOT ENOUGH INFO", matching SciFact's NEI).

@@ -1,7 +1,7 @@
 # ResearchLens X
 
 **Evidence-Aware Scientific Literature Understanding and Cross-Paper Reasoning Using Hybrid NLP**
-B.Tech E&TC final-year project: Pranshu Kumar (lead), Pawan, Gaurav.
+B.Tech E&TC final-year project by Pranshu Kumar.
 
 ResearchLens X answers questions over scientific papers with **hybrid retrieval** (BM25 + SPECTER2, fused by Reciprocal Rank Fusion) and **passage-level citations**. Each claim is **verified with NLI** as SUPPORTS / CONTRADICTS / INSUFFICIENT. A **knowledge graph** and **multi-paper comparison** view sit on top. The research contribution is a controlled evaluation of hybrid retrieval (H1) and claim-level verification (H2) on QASPER and SciFact.
 
@@ -10,12 +10,10 @@ ResearchLens X answers questions over scientific papers with **hybrid retrieval*
 | Doc | What it holds |
 |---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | components, contracts, fallbacks |
-| [TEAM_RESPONSIBILITIES.md](TEAM_RESPONSIBILITIES.md) | ownership matrix, acceptance criteria |
 | [EXPERIMENT_PROTOCOL.md](EXPERIMENT_PROTOCOL.md) | how runs are executed and reported |
 | [DATASET_REGISTER.md](DATASET_REGISTER.md) | datasets, licences, audits |
 | [PROJECT_STATE.md](PROJECT_STATE.md) | current status |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | setup, branches, PRs |
-| [docs/development/](docs/development/) | per-member workflows |
+| [docs/REPOSITORY_AUDIT.md](docs/REPOSITORY_AUDIT.md) | verified implementation matrix and roadmap |
 | [docs/RESEARCH_DESIGN_REVIEW.md](docs/RESEARCH_DESIGN_REVIEW.md) | v0.1 → v1.0 review |
 
 ## Quick start (CPU, no GPU or API keys)
@@ -38,8 +36,8 @@ python experiments/h1_retrieval.py --config configs/h1_classical_dev.yaml
 | QASPER loader + audit | ✅ |
 | Extractive CPU generator | ✅ tested (weak baseline) |
 | SPECTER2 / e5 / SciBERT encoders | ⚠️ written, not yet executed |
-| NLI verifier, LLM RAG, SciFact | ⏳ Pawan, Days 1–4 |
-| PDF ingestion, KG, Streamlit app | ⏳ Gaurav, Days 1–10 |
+| NLI verifier, LLM RAG, SciFact | ✅ tested; see results/ |
+| PDF ingestion, KG, Streamlit app | ⏳ in progress (see IMPLEMENTATION_ROADMAP.md) |
 
 The verifier currently in the demo is a **mock** (word overlap) and is labelled as such in all outputs.
 

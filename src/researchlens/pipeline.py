@@ -1,6 +1,6 @@
-"""Integration facade used by the app, the API and experiments. Owner: Pranshu.
+"""Integration facade used by the app, the API and experiments.
 
-The app (Gaurav) talks ONLY to Pipeline; it never imports retrieval/verification internals.
+The app talks ONLY to Pipeline; it never imports retrieval/verification internals.
 """
 from __future__ import annotations
 

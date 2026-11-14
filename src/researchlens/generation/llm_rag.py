@@ -1,4 +1,4 @@
-"""Conventional RAG generator with an open-weight instruct LLM. Owner: Pawan (initial: Pranshu, sprint).
+"""Conventional RAG generator with an open-weight instruct LLM.
 
   llm = HFChatLLM("Qwen/Qwen2.5-1.5B-Instruct")        # greedy decoding, pinned revision recorded
   gen = LLMRAGGenerator(llm)

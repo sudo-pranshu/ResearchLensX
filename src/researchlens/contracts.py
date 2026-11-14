@@ -1,15 +1,14 @@
 """Shared data contracts and module interfaces for ResearchLens X.
 
-OWNER: Pranshu (architecture). Changing anything in this file requires a PR labelled
-`interface-change`, approval from Pranshu, and a CHANGELOG entry. Additive optional
+Changing anything in this file requires a CHANGELOG entry. Additive optional
 fields are minor changes; renaming/removing fields or changing types is a breaking
 change and bumps SCHEMA_VERSION.
 
 Data flow:
-  Ingestor (Gaurav) -> Document -> chunk_document (Gaurav) -> list[Chunk]
+  Ingestor -> Document -> chunk_document -> list[Chunk]
   -> PassageRetriever (Pranshu) -> list[RetrievedPassage]
-  -> Generator (Pawan) -> Answer -> Verifier (Pawan) -> VerificationResult per sentence
-  -> GraphBuilder (Gaurav) -> KnowledgeGraph -> app (Gaurav)
+  -> Generator -> Answer -> Verifier -> VerificationResult per sentence
+  -> GraphBuilder -> KnowledgeGraph -> app
 """
 from __future__ import annotations
 
@@ -24,7 +23,7 @@ Verdict = Literal["SUPPORTS", "CONTRADICTS", "INSUFFICIENT"]
 VERDICTS: tuple[str, ...] = ("SUPPORTS", "CONTRADICTS", "INSUFFICIENT")
 
 
-# ---------------------------------------------------------------- documents (Gaurav)
+# ---------------------------------------------------------------- documents
 class Reference(BaseModel):
     raw: str
     title: str | None = None
@@ -72,7 +71,7 @@ class RetrievedPassage(BaseModel):
     retriever: str                                # e.g. "bm25", "rrf(bm25+specter2)"
 
 
-# ---------------------------------------------------------------- verification (Pawan)
+# ---------------------------------------------------------------- verification
 class Claim(BaseModel):
     claim_id: str
     text: str
@@ -96,7 +95,7 @@ class VerificationResult(BaseModel):
     is_mock: bool = False
 
 
-# ---------------------------------------------------------------- generation (Pawan)
+# ---------------------------------------------------------------- generation
 class AnswerSentence(BaseModel):
     text: str
     citations: list[int] = Field(default_factory=list)   # indices into Answer.passages (0-based)
@@ -114,7 +113,7 @@ class Answer(BaseModel):
     schema_version: str = SCHEMA_VERSION
 
 
-# ---------------------------------------------------------------- knowledge graph (Gaurav)
+# ---------------------------------------------------------------- knowledge graph
 NodeType = Literal["paper", "section", "entity", "claim"]
 EdgeType = Literal["has_section", "mentions", "cites", "supports", "contradicts", "shares_entity"]
 

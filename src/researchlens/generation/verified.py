@@ -1,5 +1,4 @@
 """Verified RAG: claim-level verification + citation reassignment + unsupported-claim handling.
-Owner: Pawan (initial: Pranshu, sprint).
 
 For each claim (answer sentence), the verifier judges it against EVERY retrieved passage:
   * cited passage(s) SUPPORT     -> keep; prune citations that do not support it        ("kept"/"pruned")

@@ -1,4 +1,4 @@
-"""Claim extraction from generated answers. Owner: Pawan (initial: Pranshu, sprint).
+"""Claim extraction from generated answers.
 One claim per answer sentence (citation markers already stripped by the parser); abstention
 sentences ("the passages do not contain ...") and wordless fragments are skipped; every other
 sentence, however short, is a claim that must be verified."""

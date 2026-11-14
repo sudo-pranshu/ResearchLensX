@@ -2,17 +2,17 @@
 
 **Evidence-Aware Scientific Literature Understanding and Cross-Paper Reasoning Using Hybrid NLP**
 
-B.Tech E&TC final-year project · Team: Pranshu Kumar (lead), Pawan, Gaurav · Version 1.0 · 2026-11-05 (Day 1 of 14) · Submission freeze: **2026-11-18 (Day 14)**
+B.Tech E&TC final-year project · Author: Pranshu Kumar (sole developer) · Version 1.0 · 2026-11-05 (Day 1 of 14) · Submission freeze: **2026-11-27** (moved from 11-18, see IMPLEMENTATION_ROADMAP.md)
 
 This document is the single source of truth. The other documents expand on one section each:
 
 | Section | Detailed in |
 |---|---|
 | C Architecture | [ARCHITECTURE.md](ARCHITECTURE.md) |
-| D Team | [TEAM_RESPONSIBILITIES.md](TEAM_RESPONSIBILITIES.md), [docs/development/](docs/development/) |
+| D Author | Pranshu Kumar (sole developer); see section D |
 | B/G Experiments | [EXPERIMENT_PROTOCOL.md](EXPERIMENT_PROTOCOL.md) |
 | F Datasets | [DATASET_REGISTER.md](DATASET_REGISTER.md) |
-| H Conventions | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| H Conventions | section H |
 | J Status | [PROJECT_STATE.md](PROJECT_STATE.md) |
 
 If a detailed document disagrees with this one, **this one wins** and the other must be fixed in the same PR that notices the conflict.
@@ -92,14 +92,8 @@ PDF ─► Ingestor ─► Document ─► chunk_document ─► Chunk[] ─► 
 ```
 Contracts: `src/researchlens/contracts.py` (pydantic). Integration facade: `src/researchlens/pipeline.py`. The app talks only to `Pipeline`. **Degradation rule:** if GROBID, the GPU, an LLM or SPECTER2 is unavailable, the system falls back to PyMuPDF / CPU / extractive / BM25 and the UI says so. Mock components carry `is_mock=True`, and the UI must show a MOCK badge for them.
 
-## D. Team (summary)
-| Member | Role | Owns (code) | Hypothesis | Compute |
-|---|---|---|---|---|
-| **Pranshu Kumar** | Lead, research architect, retrieval | `contracts.py`, `pipeline.py`, `mocks.py`, `retrieval/`, `evaluation/{metrics,stats}.py`, `data/qasper.py`, `experiments/h1_*`, Colab notebooks | H1 | Colab Pro, Claude Pro |
-| **Pawan** | NLP modelling & verification | `verification/`, `generation/`, `data/scifact.py`, `evaluation/attribution.py`, `experiments/h2_*` | H2 | Claude Pro, CPU (GPU jobs through Pranshu) |
-| **Gaurav** | Document intelligence & application | `ingestion/`, `processing/`, `knowledge_graph/`, `app/` | H3 case studies (with Pranshu) | CPU only, open-source only |
-
-Pranshu has final architectural approval. Disagreements are recorded in §I, never silently resolved.
+## D. Author
+Sole developer: **Pranshu Kumar**. Compute: Colab Pro (GPU jobs), local 8 GB MacBook (CPU). Disagreements are recorded in §I, never silently resolved.
 
 ## E. Technology stack
 Python 3.11 (3.10+ supported) · NumPy/SciPy/scikit-learn · pydantic v2 · PyTorch + Hugging Face Transformers + sentence-transformers + `adapters` (SPECTER2) · FAISS (cpu) · PyMuPDF (primary PDF parser) · GROBID (optional, Docker) · NetworkX + Plotly/pyvis (KG) · **Streamlit** (frontend) · FastAPI (thin optional API over `Pipeline`) · pytest + GitHub Actions. Models are proposals until pinned by HF revision in a model card: `allenai/specter2_base`+adapters, `intfloat/e5-base-v2`, `allenai/scibert_scivocab_uncased`, NLI verifier/judge from DeBERTa-v3 MNLI-family checkpoints, and a 7–8B open-weight instruct LLM.
@@ -108,7 +102,7 @@ Python 3.11 (3.10+ supported) · NumPy/SciPy/scikit-learn · pydantic v2 · PyTo
 | ID | Dataset | Version | Licence | Location | Use | Status |
 |---|---|---|---|---|---|---|
 | DS-01 | QASPER | v0.3 | CC BY 4.0 | `data/raw/qasper/` (not committed) | H1, H2, demo corpus | downloaded + audited Day 1 |
-| DS-02 | SciFact | 2020 release | CC BY-NC 2.0 | `data/raw/scifact/` | H1 test 2, H2 verifier | to download (Pawan, Day 1) |
+| DS-02 | SciFact | 2020 release | CC BY-NC 2.0 | `data/raw/scifact/` | H1 test 2, H2 verifier | downloaded |
 
 Full detail: [DATASET_REGISTER.md](DATASET_REGISTER.md).
 
@@ -128,29 +122,29 @@ Each row needs a config file, a git commit and saved results. Rows are added by 
 | EXP-H1-006 | H1 **final test** (run once) | `configs/h1_final_test.yaml` | `a6015ff` | BM25, TF-IDF, LSA-256, e5-base-v2, RRF(BM25+e5), linear(BM25+e5) | QASPER v0.3 **test**, within-paper, 1,351 Q / 414 papers | R@5 [paper-clustered]: e5 **.501** · RRF(BM25+e5) .486 · linear .496 · LSA .430 · BM25 .415 · TF-IDF .382. RRF vs BM25 +.071 [+.057, +.086], vs TF-IDF +.105, vs LSA +.056 (all p_holm<.001), **vs e5 −.015 [−.032, +.002], p_holm .10** | 2026-11-13 | ✅ done. **H1 NOT SUPPORTED**: the hybrid does not beat the strongest single retriever (decision rule requires every baseline). Hybrid helps over lexical/classical only |
 
 ## H. Engineering conventions (summary)
-Branches `main` (stable) ← `develop` (integration) ← `feature/<member>-<topic>`. PRs only; CI green; one review; owner of touched module approves. Conventional commits (`feat(retrieval): …`). No data, checkpoints, secrets or PDFs in git. Full rules: [CONTRIBUTING.md](CONTRIBUTING.md).
+Branches `main` (stable) ← `develop` (integration) ← `feature/<topic>`. PRs only; CI green. Conventional commits (`feat(retrieval): …`). No data, checkpoints, secrets or PDFs in git.
 
 ## I. Decisions log (ADRs)
-| ID | Date | Decision | Alternatives | Reason | Owner |
-|---|---|---|---|---|---|
-| ADR-001 | 11-05 | Package layout `src/researchlens/<module>/` instead of top-level `src/ingestion` etc. | Top-level packages | Generic top-level names (`evaluation`, `generation`) collide with other installed packages; a single namespace is installable | Pranshu |
-| ADR-002 | 11-05 | pydantic v2 contracts in one file | dataclasses; JSON Schema | Runtime validation, JSON round-trip, FastAPI-native | Pranshu |
-| ADR-003 | 11-05 | PyMuPDF primary, GROBID optional | GROBID primary | GROBID needs Docker/Java; the app must run on CPU and degrade gracefully | Pranshu/Gaurav |
-| ADR-004 | 11-05 | Streamlit frontend calling `Pipeline` in-process; FastAPI optional | React + FastAPI | 14 days, a Python-only team member, fewer moving parts | Pranshu/Gaurav |
-| ADR-005 | 11-05 | QASPER open-corpus dropped as H1 primary; SciFact used as open-corpus test | Keep both | Review R2 (title conditioning: 25% → 99% right-paper hits) | Pranshu |
-| ADR-006 | 11-05 | Cluster bootstrap by paper for QASPER | IID bootstrap | Review R5 | Pranshu |
-| ADR-007 | 11-05 | All LLM generations cached and committed as JSONL | Regenerate on demand | Only Pranshu has a GPU; keeps H2 re-runnable on CPU | Pranshu/Pawan |
-| ADR-008 | 11-05 | No paid API in the evaluated pipeline | Hosted LLM | Reproducibility and resource rules | Pranshu |
-| ADR-009 | 11-05 | D* = e5-base-v2; the pre-registered H1 hybrid is RRF(BM25 + e5), k=60, depth=100 | SPECTER2 (expected), SciBERT | Pre-registered rule: best dense R@5 on QASPER dev (e5 .500 vs SPECTER2 .288 vs SciBERT .181, EXP-H1-003) | Pranshu |
-| ADR-010 | 11-05 | H2 verifier uses passage-level premises, thresholds 0.5 | sentence-level (+tuned) | Best on SciFact dev (EXP-H2-001, p<.001). H2 itself is measured on QASPER, so no selection leakage | Pranshu/Pawan |
-| ADR-011 | 11-05 | Experiments run one transformer at a time and set KMP_DUPLICATE_LIB_OK / OMP_NUM_THREADS=1 on macOS | — | 8 GB laptops thrash; torch+faiss libomp clash caused aborts/segfaults | Pranshu |
+| ID | Date | Decision | Alternatives | Reason |
+|---|---|---|---|---|
+| ADR-001 | 11-05 | Package layout `src/researchlens/<module>/` instead of top-level `src/ingestion` etc. | Top-level packages | Generic top-level names (`evaluation`, `generation`) collide with other installed packages; a single namespace is installable |
+| ADR-002 | 11-05 | pydantic v2 contracts in one file | dataclasses; JSON Schema | Runtime validation, JSON round-trip, FastAPI-native |
+| ADR-003 | 11-05 | PyMuPDF primary, GROBID optional | GROBID primary | GROBID needs Docker/Java; the app must run on CPU and degrade gracefully |
+| ADR-004 | 11-05 | Streamlit frontend calling `Pipeline` in-process; FastAPI optional | React + FastAPI | 14 days, fewer moving parts |
+| ADR-005 | 11-05 | QASPER open-corpus dropped as H1 primary; SciFact used as open-corpus test | Keep both | Review R2 (title conditioning: 25% → 99% right-paper hits) |
+| ADR-006 | 11-05 | Cluster bootstrap by paper for QASPER | IID bootstrap | Review R5 |
+| ADR-007 | 11-05 | All LLM generations cached and committed as JSONL | Regenerate on demand | GPU time is limited to Colab; keeps H2 re-runnable on CPU |
+| ADR-008 | 11-05 | No paid API in the evaluated pipeline | Hosted LLM | Reproducibility and resource rules |
+| ADR-009 | 11-05 | D* = e5-base-v2; the pre-registered H1 hybrid is RRF(BM25 + e5), k=60, depth=100 | SPECTER2 (expected), SciBERT | Pre-registered rule: best dense R@5 on QASPER dev (e5 .500 vs SPECTER2 .288 vs SciBERT .181, EXP-H1-003) |
+| ADR-010 | 11-05 | H2 verifier uses passage-level premises, thresholds 0.5 | sentence-level (+tuned) | Best on SciFact dev (EXP-H2-001, p<.001). H2 itself is measured on QASPER, so no selection leakage |
+| ADR-011 | 11-05 | Experiments run one transformer at a time and set KMP_DUPLICATE_LIB_OK / OMP_NUM_THREADS=1 on macOS | — | 8 GB laptops thrash; torch+faiss libomp clash caused aborts/segfaults |
 
 ## J. Status
 See [PROJECT_STATE.md](PROJECT_STATE.md). 14-day plan:
 
 | Days | Dates | Goal | Exit criterion |
 |---|---|---|---|
-| 1–2 | 11-05→11-06 | Setup, contracts, datasets, baselines | Repo + CI green; QASPER & SciFact audited; classical H1 dev run committed; each member's first module skeleton passing tests |
+| 1–2 | 11-05→11-06 | Setup, contracts, datasets, baselines | Repo + CI green; QASPER & SciFact audited; classical H1 dev run committed; first module skeletons passing tests |
 | 3–4 | 11-07→11-08 | Independent modules | SPECTER2/e5 dev results; zero-shot NLI on SciFact dev; PyMuPDF ingestor on 10 PDFs |
 | 5–6 | 11-09→11-10 | Integration | `Pipeline` with hybrid retriever + real verifier; Streamlit app shows real outputs |
 | 7–8 | 11-11→11-12 | Evaluation | H1 test runs (once); H2 generations cached; H2 metrics; human eval done |
