@@ -16,7 +16,7 @@ from typing import Literal, Protocol, Sequence, runtime_checkable
 
 from pydantic import BaseModel, Field
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"   # 1.1: additive page provenance (Section.pages, Chunk.page)
 
 # Verification label set. Mapping from SciFact: SUPPORT->SUPPORTS, CONTRADICT->CONTRADICTS, NEI->INSUFFICIENT.
 Verdict = Literal["SUPPORTS", "CONTRADICTS", "INSUFFICIENT"]
@@ -35,6 +35,7 @@ class Section(BaseModel):
     title: str
     paragraphs: list[str]
     level: int = 1
+    pages: list[int | None] = Field(default_factory=list)   # 1-based page of each paragraph's first line; [] if unknown
 
 
 class Document(BaseModel):
@@ -56,6 +57,7 @@ class Chunk(BaseModel):
     section: str
     text: str
     order: int                                    # position of the chunk within its document
+    page: int | None = None                       # 1-based PDF page where the chunk starts; None if the source has no pages
 
     def index_text(self, title: str = "") -> str:
         """Text handed to retrievers (section-prefixed, see EXPERIMENT_PROTOCOL H1 ablations)."""

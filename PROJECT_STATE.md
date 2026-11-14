@@ -1,6 +1,6 @@
 # Project State
 
-Updated: 2026-11-13 by Pranshu. Update this file at every milestone (PROJECT_BIBLE §J).
+Updated: 2026-11-14 by Pranshu. Update this file at every milestone (PROJECT_BIBLE §J).
 
 ## Completed
 - Research design v0.1 → critical review → v1.0 ([review](docs/RESEARCH_DESIGN_REVIEW.md)).
@@ -17,6 +17,8 @@ Updated: 2026-11-13 by Pranshu. Update this file at every milestone (PROJECT_BIB
 - H2 dev pilot (EXP-H2-002): inconclusive, because the small generator rarely cites; Answer-F1 guard failed.
 
 ## Active
+Day 1 done (11-14): schema 1.1 page provenance; `PyMuPDFIngestor` + tests (52 pass in `.venv`; ingestion tests skip without PyMuPDF). **Not yet validated on real papers** (Day 2: 5 open-access PDFs).
+
 See [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md) (14-day solo plan, 2026-11-14 to 2026-11-27) and [docs/REPOSITORY_AUDIT.md](docs/REPOSITORY_AUDIT.md).
 
 ## Blocked
