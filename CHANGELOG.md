@@ -3,6 +3,7 @@
 Format: date · type (added / changed / interface / fixed / result) · description.
 
 ## 2026-11-05 (Day 1)
+- fixed · after final QA: the app now offers e5 and RRF(BM25+e5) (visible fallback to BM25), the default verifier is the validated passage-level configuration (combined evidence is an opt-in experimental toggle), the status panel reports rerank/retrieval fallbacks, EXP-QA-001 and EXP-H2-003 write config.json, corrected EXP-H2-004 paired numbers, register hashes and paper counts; 4 new tests
 - fixed · after an external methodology review: gap text no longer claims other papers fail to address an item ("not checked"), review citations use the real section, related-work and citation-bearing sentences are no longer attributed to the paper, complete-linkage clusters with stored similarity, one sentence per gap, round-robin ranking across papers, missing-comparison uses unthresholded mentions, NLI edges gated on a shared extracted entity; 7 regression tests
 - added · `analysis/gaps.py` (author-stated / collection-pattern / absence-in-collection gaps, evidence + template RQ/methodology, confidence capped at medium, no novelty claims), `analysis/review.py` (cited literature review, Markdown/HTML/PDF), app pages Research gaps and Literature review, `scripts/gap_review_sheet.py` for manual labelling; shared strict limitation rule
 - added · `analysis/compare.py` comparative methodology table, shared/unique entities, Markdown export; app page Compare papers (same question asked of each paper)

@@ -1,0 +1,15 @@
+{
+  "experiment": "EXP-QA-001",
+  "qasper": "data/raw/qasper/qasper-dev-v0.3.json",
+  "k": 5,
+  "n_boot": 2000,
+  "out": "results/EXP-QA-001_abstention_dev",
+  "git": "9d3876e-dirty",
+  "environment": {
+    "python": "3.12.11",
+    "platform": "macOS-27.2.1-arm64-arm-64bit",
+    "torch": "2.15.0",
+    "device": "mps"
+  },
+  "dataset": "QASPER v0.3 dev"
+}

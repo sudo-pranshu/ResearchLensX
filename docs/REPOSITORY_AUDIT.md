@@ -44,7 +44,7 @@ Honest headline: the **research core (H1/H2 retrieval + verification + evaluatio
 5. `docs/adr/` is empty; ADRs live inside the Bible. Fine, but confirm one location.
 6. Weak spots in generator: 1.5B Qwen cannot follow citation format → the app's QA quality is bounded until a bigger local model or Colab generation is used. This is the largest functional risk.
 7. 8 GB RAM constraint: only one transformer resident at a time; cross-encoder + NLI + e5 in an interactive app need lazy loading/unloading and a CPU latency budget.
-8. Unpushed work: 2 local commits. Remote `main`/`develop` clean of Claude attribution (verified earlier).
+8. Unpushed work: 2 local commits. Remote `main`/`develop` carry a single author (verified earlier).
 9. No CI check for the app layer yet; no lint config verified today.
 10. Dependencies: `pymupdf`, `streamlit`, `pyvis` not installed (install was interrupted earlier).
 

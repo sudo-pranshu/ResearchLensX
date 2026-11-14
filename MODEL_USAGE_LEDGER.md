@@ -7,7 +7,7 @@ Time is wall-clock as reported by the app; if unknown, record an estimate and ma
 
 | # | Date | Objective | Context supplied | Expected output | Acceptance criterion | Est. h | Actual h | Cumulative |
 |---|------|-----------|------------------|-----------------|----------------------|--------|----------|-----------|
-| 1 | 2026-11-14 | Final QA against the Definition of Done and overclaim audit of docs vs code vs results | repo path; DoD list; instruction to run tests and inspect, read-only | pass/fail per DoD item with reproduction steps + list of overclaimed statements with file/line | every DoD item has a verdict with evidence; every number in README/report checked against results/ | 1.0 | (fill after) | (fill after) / 5.0 |
+| 1 | 2026-11-14 | Final QA against the Definition of Done and overclaim audit of docs vs code vs results | repo path; DoD list; instruction to run tests and inspect, read-only | pass/fail per DoD item with reproduction steps + list of overclaimed statements with file/line | every DoD item has a verdict with evidence; every number in README/report checked against results/ | 1.0 | ≈0.05 (155 s wall-clock, ~115k tokens, est.) | ≈0.05 / 5.0 |
 
 Planned (not started, each needs a concrete trigger):
 1. Adversarial review of the verified-RAG and gap-discovery claims before the technical report (~1.0 h). Accept: written list of invalid/overclaimed statements, each mapped to a doc line.

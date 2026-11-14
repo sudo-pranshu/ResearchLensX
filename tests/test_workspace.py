@@ -57,6 +57,39 @@ def test_rerank_failure_falls_back_to_bm25(ws, monkeypatch):
     assert passages and "fell back" in info["note"]
 
 
+def test_unavailable_dense_retriever_falls_back_visibly(ws, monkeypatch):
+    import researchlens.retrieval.registry as reg
+    monkeypatch.setattr(reg, "build_systems", lambda *a, **k: (_ for _ in ()).throw(OSError("no model")))
+    passages, info = ws.search("fusion", Settings(retriever="e5"))
+    assert passages and "fell back to BM25" in info["note"]
+    st = {c.name: c for c in ws.status(Settings(retriever="e5"))}
+    assert st["Retrieval"].state == "fallback"
+
+
+def test_failed_rerank_is_reported_as_fallback_in_status(ws, monkeypatch):
+    import researchlens.retrieval.rerank as rr
+    monkeypatch.setattr(rr.CrossEncoderScorer, "scores", lambda *a, **k: (_ for _ in ()).throw(OSError("offline")))
+    ws.search("fusion", Settings(rerank=True))
+    assert {c.name: c for c in ws.status(Settings(rerank=True))}["Reranker"].state == "fallback"
+
+
+def test_default_verifier_is_the_validated_passage_level_configuration(monkeypatch):
+    import researchlens.verification.nli as nli
+
+    class Fake:
+        name = "fake"
+        def __init__(self, *a, **k): pass
+        def __call__(self, p, h):
+            import numpy as np
+            return np.array([[0.9, 0.05, 0.05]] * len(p))
+    monkeypatch.setattr(nli, "HFNLIScorer", Fake)
+    w = Workspace()
+    v = w.verifier()
+    assert v.granularity == "passage" and v.temperature == 2.24 and not v.combine
+    c = w.verifier(combine=True)
+    assert c.granularity == "sentence" and c.combine and c.temperature == 1.0       # experimental mode is uncalibrated
+
+
 def test_remove_document(ws):
     doc_id = ws.library()[0].doc_id
     assert ws.remove(doc_id) and ws.library() == []

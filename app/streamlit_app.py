@@ -18,7 +18,7 @@ import streamlit as st  # noqa: E402
 
 import components as C  # noqa: E402
 from researchlens.qa.engine import Reference  # noqa: E402
-from researchlens.workspace import Settings, Workspace  # noqa: E402
+from researchlens.workspace import RETRIEVERS, Settings, Workspace  # noqa: E402
 
 st.set_page_config(page_title="ResearchLens X", page_icon="🔬", layout="wide")
 C.inject_css()
@@ -44,7 +44,9 @@ with st.sidebar:
     scope = st.multiselect("Papers in scope", list(labels), format_func=labels.get, placeholder="All papers",
                            help="Restrict search, QA and verification to these papers.")
     with st.expander("Retrieval settings", expanded=False):
-        retr = st.selectbox("First-stage retriever", ["bm25", "tfidf"], help="Lexical retrievers, implemented from scratch.")
+        retr = st.selectbox("First-stage retriever", list(RETRIEVERS), format_func=RETRIEVERS.get,
+                            help="BM25/TF-IDF are lexical and run anywhere. e5 and the hybrid need the dense extra and embed your papers once "
+                                 "(cached). On QASPER test, e5 alone matched or beat the hybrid (EXP-H1-006).")
         rerank = st.toggle("Cross-encoder reranking", value=False,
                            help="Reranks the top candidates with a small cross-encoder (downloads ~90 MB the first time). "
                                 "On QASPER dev it raised Recall@5 from .50 to .58 (EXP-H1-007).")
@@ -54,7 +56,9 @@ with st.sidebar:
         excl_refs = st.toggle("Ignore reference lists", value=True)
     verify = st.toggle("Verify answer sentences with NLI", value=False,
                        help="Loads a DeBERTa NLI model (~700 MB). If it cannot load, a clearly labelled MOCK is used.")
-    settings = Settings(retriever=retr, rerank=rerank, dedup=dedup if dedup < 1.0 else None, k=k, max_per_doc=per_doc,
+    combine = st.toggle("Experimental: combined multi-passage evidence", value=False, disabled=not verify,
+                        help="Lets several passages jointly support a sentence (status: inferred). Sentence-level, uncalibrated, never evaluated on real data.")
+    settings = Settings(retriever=retr, combine_evidence=combine, rerank=rerank, dedup=dedup if dedup < 1.0 else None, k=k, max_per_doc=per_doc,
                         verify=verify, exclude_sections=("references",) if excl_refs else ())
     st.divider()
     C.section_head("Components")

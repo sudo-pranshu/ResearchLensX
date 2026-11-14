@@ -21,7 +21,8 @@ from researchlens.contracts import Claim, Document, RetrievedPassage, Verificati
 from researchlens.store.corpus import CorpusStore, IngestReport
 
 NLI_MODEL = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
-NLI_TEMPERATURE = 2.24      # fitted on SciFact dev (EXP-H2-003); calibrates reported confidence only
+NLI_TEMPERATURE = 2.24      # fitted on SciFact dev PASSAGE-level probabilities (EXP-H2-003); valid for granularity="passage" only
+RETRIEVERS = {"bm25": "BM25 (lexical)", "tfidf": "TF-IDF (lexical)", "e5": "e5-base-v2 (dense)", "rrf:bm25+e5": "Hybrid: RRF(BM25 + e5)"}
 
 
 @dataclass
@@ -33,12 +34,13 @@ class ComponentStatus:
 
 @dataclass
 class Settings:
-    retriever: str = "bm25"            # bm25 | tfidf
+    retriever: str = "bm25"            # bm25 | tfidf | e5 | rrf:bm25+e5 (dense/hybrid need the dense extra; fall back to BM25 with a note)
     rerank: bool = False
     dedup: float | None = 0.85
     k: int = 6
     max_per_doc: int = 3
     verify: bool = False
+    combine_evidence: bool = False      # experimental: multi-passage support; sentence-level, uncalibrated, never evaluated on real data
     exclude_sections: tuple[str, ...] = ("references",)
 
 
@@ -46,8 +48,9 @@ class Workspace:
     def __init__(self, db_path: str | Path = ":memory:"):
         self.store = CorpusStore(db_path)
         self._engines: dict = {}
-        self._verifier = None
-        self._verifier_note = ""
+        self._verifiers: dict[bool, object] = {}
+        self._verifier_notes: dict[bool, str] = {}
+        self._last_combine = False
         self._fallbacks: list[ComponentStatus] = []
 
     # ------------------------------------------------------------------ library
@@ -81,19 +84,26 @@ class Workspace:
         return self.store.list_documents()
 
     # ------------------------------------------------------------------ components
-    def verifier(self):
-        """Real NLI verifier if the model can be loaded, else the labelled mock."""
-        if self._verifier is None:
+    def verifier(self, combine: bool = False):
+        """Real NLI verifier if the model can be loaded, else the labelled mock.
+        Default = the validated configuration: passage-level premises (EXP-H2-001, ADR-010) with the temperature fitted on exactly
+        those probabilities (EXP-H2-003). `combine=True` is the experimental sentence-level multi-passage mode: uncalibrated (T=1)."""
+        self._last_combine = combine
+        if combine not in self._verifiers:
             try:
                 from researchlens.verification.nli import HFNLIScorer, NLIVerifier
                 scorer = HFNLIScorer(NLI_MODEL, batch_size=8)
-                self._verifier = NLIVerifier(scorer, granularity="sentence", combine=True, temperature=NLI_TEMPERATURE)
-                self._verifier_note = f"{NLI_MODEL}, calibrated T={NLI_TEMPERATURE}"
+                if combine:
+                    v = NLIVerifier(scorer, granularity="sentence", combine=True)
+                    note = f"{NLI_MODEL}, EXPERIMENTAL sentence-level combined evidence, uncalibrated"
+                else:
+                    v = NLIVerifier(scorer, granularity="passage", temperature=NLI_TEMPERATURE)
+                    note = f"{NLI_MODEL}, passage-level, calibrated T={NLI_TEMPERATURE}"
             except Exception as e:           # no torch / no model files / no network
                 from researchlens.mocks import MockVerifier
-                self._verifier = MockVerifier()
-                self._verifier_note = f"NLI model unavailable ({type(e).__name__}); using MOCK word-overlap verifier"
-        return self._verifier
+                v, note = MockVerifier(), f"NLI model unavailable ({type(e).__name__}); using MOCK word-overlap verifier"
+            self._verifiers[combine], self._verifier_notes[combine] = v, note
+        return self._verifiers[combine]
 
     def engine(self, s: Settings, doc_ids: Sequence[str] | None = None):
         from researchlens.generation.extractive import ExtractiveGenerator
@@ -105,15 +115,25 @@ class Workspace:
             raise ValueError("The library is empty: upload at least one PDF first.")
         key = (tuple(d.doc_id for d in docs), s.retriever, s.rerank, s.dedup)
         if key not in self._engines:
-            rerank, note = s.rerank, None
-            try:
-                pipe = build_default_pipeline(docs, retriever=s.retriever, rerank=rerank, dedup_threshold=s.dedup)
-                if rerank:                                     # force the model load now so a failure falls back here
-                    pipe.retriever.search("probe", k=1)
-            except Exception as e:
-                note = f"reranker unavailable ({type(e).__name__}); fell back to {s.retriever} only"
-                pipe = build_default_pipeline(docs, retriever=s.retriever, rerank=False, dedup_threshold=s.dedup)
-            self._engines[key] = (MultiDocQA(pipe.retriever, ExtractiveGenerator(max_sentences=3), docs, None), note)
+            retr, rerank, notes = s.retriever, s.rerank, []
+            pipe = None
+            while pipe is None:
+                try:
+                    pipe = build_default_pipeline(docs, retriever=retr, rerank=rerank, dedup_threshold=s.dedup)
+                    pipe.retriever.search("probe", k=1)       # force model loads now so any failure falls back here
+                except Exception as e:
+                    pipe = None
+                    if rerank:
+                        notes.append(f"reranker unavailable ({type(e).__name__}); fell back to {retr} only")
+                        self._fallbacks.append(ComponentStatus("Reranker", "fallback", notes[-1]))
+                        rerank = False
+                    elif retr != "bm25":
+                        notes.append(f"{retr} unavailable ({type(e).__name__}); fell back to BM25")
+                        self._fallbacks.append(ComponentStatus("Retrieval", "fallback", notes[-1]))
+                        retr = "bm25"
+                    else:
+                        raise
+            self._engines[key] = (MultiDocQA(pipe.retriever, ExtractiveGenerator(max_sentences=3), docs, None), "; ".join(notes) or None)
         return self._engines[key]
 
     # ------------------------------------------------------------------ operations
@@ -129,13 +149,13 @@ class Workspace:
 
     def ask(self, question: str, s: Settings, doc_ids: Sequence[str] | None = None):
         qa, note = self.engine(s, doc_ids)
-        qa.verifier = self.verifier() if s.verify else None
+        qa.verifier = self.verifier(s.combine_evidence) if s.verify else None
         res = qa.answer(question, k=s.k, max_per_doc=s.max_per_doc, doc_ids=doc_ids, where=self._where(s), verify=s.verify)
         return res, note
 
     def verify_claim(self, claim: str, s: Settings, doc_ids: Sequence[str] | None = None) -> tuple[VerificationResult, list[RetrievedPassage]]:
         passages, _ = self.search(claim, s, doc_ids)
-        v = self.verifier().verify(Claim(claim_id="user", text=claim, source="user"), passages)
+        v = self.verifier(s.combine_evidence).verify(Claim(claim_id="user", text=claim, source="user"), passages)
         return v, passages
 
     def graph(self, s: Settings, doc_ids: Sequence[str] | None = None, link_with_nli: bool = False, min_mentions: int = 2):
@@ -150,7 +170,7 @@ class Workspace:
             builder = GraphBuilder(min_mentions=min_mentions)
             if link_with_nli:
                 qa, _ = self.engine(s, doc_ids)
-                self._engines[key] = (builder.build(docs, verifier=self.verifier(), index=qa.index), None)
+                self._engines[key] = (builder.build(docs, verifier=self.verifier(False), index=qa.index), None)
             else:
                 self._engines[key] = (builder.build(docs), None)
         return self._engines[key][0]
@@ -171,14 +191,15 @@ class Workspace:
 
     def status(self, s: Settings | None = None) -> list[ComponentStatus]:
         s = s or Settings()
-        out = [ComponentStatus("Ingestion", "real", "PyMuPDF (text PDFs only; no OCR)"),
-               ComponentStatus("Retrieval", "real", f"{s.retriever.upper()} (lexical, from scratch)"),
-               ComponentStatus("Answer generator", "real", "Extractive: sentences copied from cited passages, no LLM")]
-        out.append(ComponentStatus("Reranker", "real" if s.rerank else "off",
-                                   "cross-encoder ms-marco-MiniLM-L-6-v2" if s.rerank else "disabled"))
-        if self._verifier is None:
+        fb = {c.name: c for c in self._fallbacks}
+        out = [ComponentStatus("Ingestion", "real", "PyMuPDF (text PDFs only; no OCR)")]
+        out.append(fb.get("Retrieval") or ComponentStatus("Retrieval", "real", RETRIEVERS.get(s.retriever, s.retriever)))
+        out.append(ComponentStatus("Answer generator", "real", "Extractive: sentences copied from cited passages, no LLM"))
+        out.append(fb.get("Reranker") or ComponentStatus("Reranker", "real" if s.rerank else "off",
+                                                          "cross-encoder ms-marco-MiniLM-L-6-v2" if s.rerank else "disabled"))
+        v = self._verifiers.get(s.combine_evidence)
+        if v is None:
             out.append(ComponentStatus("Verifier", "off" if not s.verify else "real", "loads on first use"))
         else:
-            mock = getattr(self._verifier, "is_mock", False)
-            out.append(ComponentStatus("Verifier", "mock" if mock else "real", self._verifier_note))
+            out.append(ComponentStatus("Verifier", "mock" if getattr(v, "is_mock", False) else "real", self._verifier_notes[s.combine_evidence]))
         return out

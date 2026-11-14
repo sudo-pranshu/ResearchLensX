@@ -103,3 +103,15 @@ def test_revising_pipeline_with_fake_nli(docs):
     assert ans.mode == "verified_rag" and len(ans.sentences) == 1          # unsupported sentence dropped
     cited = ans.passages[ans.sentences[0].citations[0]].chunk.text
     assert "QASPER" in cited and ans.sentences[0].verification.label == "SUPPORTS"
+
+
+def test_default_pipeline_accepts_registry_specs_dense_and_hybrid(tmp_path):
+    """lsa is a dense retriever that needs no model download, so this exercises the same code path as e5 / rrf:bm25+e5."""
+    from researchlens.mocks import load_sample_documents
+    from researchlens.pipeline import build_default_pipeline
+    docs = load_sample_documents()
+    for spec in ("lsa", "rrf:bm25+lsa", "linear:bm25+lsa"):
+        pipe = build_default_pipeline(docs, retriever=spec, cache_dir=str(tmp_path))
+        a = pipe.ask("hybrid retrieval for scientific question answering", k=3, verify=False)
+        assert a.passages and pipe.retriever.name == spec
+        assert a.passages[0].retriever == spec

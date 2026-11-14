@@ -39,20 +39,37 @@ class Pipeline:
 
 
 def build_default_pipeline(documents: list[Document], retriever: str = "bm25", verifier=None,
-                           rerank: bool = False, dedup_threshold: float | None = 0.85) -> Pipeline:
-    """CPU-only default: BM25 (+ optional cross-encoder rerank) + extractive generator (+ optional verifier).
-    Redundant passages are suppressed by default; pass dedup_threshold=None to disable."""
+                           rerank: bool = False, dedup_threshold: float | None = 0.85, cache_dir: str | None = None) -> Pipeline:
+    """BM25/TF-IDF (CPU, offline) or any registry spec such as "lsa", "e5" or "rrf:bm25+e5" (neural specs need the dense extra),
+    optional cross-encoder rerank, extractive generator, optional verifier. Redundant passages are suppressed by default;
+    pass dedup_threshold=None to disable."""
     from researchlens.generation.extractive import ExtractiveGenerator
     from researchlens.processing.chunking import chunk_document
     from researchlens.retrieval.index import ChunkIndex
     from researchlens.retrieval.lexical import BM25Retriever, TfidfRetriever
 
-    base = {"bm25": BM25Retriever, "tfidf": TfidfRetriever}[retriever]()
+    chunks = [c for d in documents for c in chunk_document(d)]
+    titles = {d.doc_id: d.title for d in documents}
+    if retriever in ("bm25", "tfidf"):
+        first = {"bm25": BM25Retriever, "tfidf": TfidfRetriever}[retriever]()
+        fit_first = True
+    else:
+        # dense or hybrid spec from the registry (e.g. "e5", "rrf:bm25+e5", "lsa"); embeddings are cached on disk
+        from researchlens.retrieval.registry import RetrievalConfig, build_systems
+        texts = [c.index_text(titles.get(c.doc_id, "")) for c in chunks]
+        systems, _, _ = build_systems([retriever], texts, RetrievalConfig(batch_size=8, cache_dir=cache_dir), log=lambda *_: None)
+        first, fit_first = systems[retriever], False
     if rerank:
         from researchlens.retrieval.rerank import CrossEncoderScorer, RerankRetriever
-        base = RerankRetriever(base, CrossEncoderScorer())
-    chunks = [c for d in documents for c in chunk_document(d)]
-    index = ChunkIndex(base, chunks, titles={d.doc_id: d.title for d in documents}, dedup_threshold=dedup_threshold)
+        base = RerankRetriever(first, CrossEncoderScorer(), fit_first_stage=fit_first)
+        if not fit_first:
+            base.fit([c.index_text(titles.get(c.doc_id, "")) for c in chunks])
+            index = ChunkIndex(base, chunks, titles, prefit=True, name=f"rerank:{retriever}", dedup_threshold=dedup_threshold)
+            return Pipeline(index, ExtractiveGenerator(), verifier)
+    else:
+        base = first
+    index = ChunkIndex(base, chunks, titles, prefit=not fit_first, name=retriever if not fit_first else None,
+                       dedup_threshold=dedup_threshold)
     return Pipeline(index, ExtractiveGenerator(), verifier)
 
 

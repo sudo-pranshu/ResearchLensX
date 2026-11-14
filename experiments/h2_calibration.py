@@ -6,6 +6,7 @@ fold, so reported numbers are out-of-fold. The T applied downstream is the one f
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -14,13 +15,14 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from researchlens.evaluation.calibration import apply_temperature, ece, fit_temperature, nll  # noqa: E402
+from researchlens.evaluation.reporting import environment, git_rev  # noqa: E402
 
 SRC = Path("results/EXP-H2-001_scifact_verifier_dev/per_query.jsonl")
 OUT = Path("results/EXP-H2-003_calibration_dev")
 LAB = {"SUPPORTS": 0, "CONTRADICTS": 1, "INSUFFICIENT": 2}
 
 
-def main(k_folds: int = 5, seed: int = 0, n_boot: int = 2000):
+def main(k_folds: int = 5, seed: int = 0, n_boot: int = 2000, out_dir: Path = OUT):
     rows = [json.loads(l) for l in SRC.read_text().splitlines()]
     P = np.array([r["V_passage_probs"] for r in rows]); P = P / P.sum(1, keepdims=True)
     y = np.array([LAB[r["gold"]] for r in rows]); claims = np.array([r["claim_id"] for r in rows])
@@ -47,10 +49,14 @@ def main(k_folds: int = 5, seed: int = 0, n_boot: int = 2000):
            "calibrated_out_of_fold": {k: round(v, 4) for k, v in after.items()},
            "ece_change_ci95": [round(float(lo), 4), round(float(hi), 4)],
            "note": "passage-level V probabilities from EXP-H2-001; probabilities rounded to 4 decimals in that artefact"}
-    OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "summary.json").write_text(json.dumps(out, indent=2))
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "summary.json").write_text(json.dumps(out, indent=2))
+    (out_dir / "config.json").write_text(json.dumps({"experiment": "EXP-H2-003", "source": str(SRC), "k_folds": k_folds, "seed": seed,
+        "n_boot": n_boot, "git": git_rev(), "environment": environment(), "dataset": "SciFact 2020 release (dev, via EXP-H2-001 probabilities)"}, indent=2))
     print(json.dumps(out, indent=2))
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default=str(OUT))
+    main(out_dir=Path(ap.parse_args().out))

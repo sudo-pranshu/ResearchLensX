@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 import researchlens._runtime  # noqa: E402,F401
 
 from researchlens.data.qasper import load_qasper                      # noqa: E402
+from researchlens.evaluation.reporting import environment, git_rev      # noqa: E402
 from researchlens.qa.engine import evidence_coverage                    # noqa: E402
 from researchlens.contracts import Chunk, RetrievedPassage              # noqa: E402
 from researchlens.retrieval.lexical import BM25Retriever                # noqa: E402
@@ -77,6 +78,8 @@ def main(argv=None):
            "thresholds": table, "dataset": "QASPER v0.3 dev", "retriever": "bm25 within-paper top-%d" % args.k}
     Path(args.out).mkdir(parents=True, exist_ok=True)
     (Path(args.out) / "summary.json").write_text(json.dumps(out, indent=2))
+    (Path(args.out) / "config.json").write_text(json.dumps({"experiment": "EXP-QA-001", **vars(args), "git": git_rev(),
+        "environment": environment(), "dataset": "QASPER v0.3 dev"}, indent=2))
     print(json.dumps(out, indent=2))
 
 

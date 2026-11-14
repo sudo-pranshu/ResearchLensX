@@ -13,7 +13,7 @@ $PY experiments/h1_retrieval.py --config configs/h1_classical_dev.yaml --run-nam
 echo "== 3/4 abstention signal (EXP-QA-001)"
 $PY experiments/qa_abstention.py --out results/_rerun/EXP-QA-001
 echo "== 4/4 calibration from stored verifier probabilities (EXP-H2-003)"
-$PY experiments/h2_calibration.py
+$PY experiments/h2_calibration.py --out results/_rerun/EXP-H2-003
 if [ "${1:-}" = "--full" ]; then
   echo "== dense retrieval + rerank dev (EXP-H1-003, EXP-H1-007)"
   $PY experiments/h1_retrieval.py --config configs/h1_dense_dev.yaml --run-name EXP-H1-003_rerun --out results/_rerun

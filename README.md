@@ -12,10 +12,10 @@ It is also a research framework. Two hypotheses were pre-registered: **H1 (hybri
 |---|---|
 | PDF ingestion with sections, per-paragraph pages, references | `ingestion/pymupdf_ingestor.py` |
 | Persistent multi-paper library (duplicates, failures reported) | `store/corpus.py` |
-| BM25, TF-IDF, LSA, e5, SPECTER2, SciBERT, RRF, linear fusion, cross-encoder rerank, redundancy suppression, section filters | `retrieval/` |
+| Retrieval: BM25, TF-IDF, LSA, e5, SPECTER2, SciBERT, RRF, linear fusion (experiments); **in the app: BM25, TF-IDF, e5 and RRF(BM25+e5)**, optional cross-encoder rerank, redundancy suppression, section filters | `retrieval/`, `workspace.py` |
 | Multi-document QA with references and visible abstention | `qa/engine.py` |
-| NLI claim verification: status, explanation, combined evidence, calibrated confidence | `verification/`, `evaluation/calibration.py` |
-| Knowledge graph with evidence on every edge | `knowledge_graph/` |
+| NLI claim verification: status, explanation, calibrated confidence (app default = the validated passage-level configuration); combined multi-passage evidence is experimental and uncalibrated | `verification/`, `evaluation/calibration.py` |
+| Knowledge graph with evidence on every edge (mostly an entity graph: few paper-to-paper edges, cross-paper NLI links are gated candidates) | `knowledge_graph/` |
 | Comparison table, candidate gaps, cited review (Markdown/HTML/PDF) | `analysis/` |
 | Streamlit app with MOCK/fallback badges | `app/`, `workspace.py` |
 | Evaluation framework: paper-clustered bootstrap, randomisation, Holm, McNemar, ECE | `evaluation/`, `experiments/` |
@@ -24,7 +24,7 @@ It is also a research framework. Two hypotheses were pre-registered: **H1 (hybri
 | Experiment | Result |
 |---|---|
 | **H1 final test**, QASPER test, R@5 | e5 **.501** · RRF(BM25+e5) .486 · BM25 .415. RRF vs e5 Δ −.015 [−.032, +.002], p_holm .10: **not supported** |
-| Cross-encoder rerank, QASPER **dev** | R@5 .502 → .580 on the hybrid (+.078, p_holm .0003); dev only |
+| Cross-encoder rerank, QASPER **dev** (within-paper, ~45 candidate paragraphs) | R@5 .502 → .580 on the hybrid (+.078, p_holm .0003); dev only |
 | NLI verifier, SciFact dev macro-F1 | LR .518 → DeBERTa passage-level .681 |
 | Confidence calibration (dev, out-of-fold) | ECE .183 → .067 |
 | H2 verified RAG, QASPER **dev** pilot (100 Q, 1.5B generator) | citation precision .420 → .785 (77 paired questions), but Answer-F1 −.060 fails the 2-pt guard; **partially supported, not confirmed**; test split not run |
