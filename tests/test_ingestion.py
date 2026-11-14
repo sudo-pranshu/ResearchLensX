@@ -131,3 +131,41 @@ def test_image_only_pdf_raises(tmp_path):
     doc = pymupdf.open(); doc.new_page(); p = tmp_path / "blank.pdf"; doc.save(p); doc.close()
     with pytest.raises(ValueError, match="no extractable text"):
         PyMuPDFIngestor().ingest(str(p))
+
+
+# ---- regressions found on real arXiv PDFs (2026-11-14) -------------------------------------------
+def make_real_style(path):
+    doc = pymupdf.open()
+    p1 = _page(doc)
+    p1.insert_text((20, 600), "arXiv:2004.14974v6 [cs.CL] 3 Oct 2020", fontsize=22, rotate=90)   # rotated sidebar stamp
+    p1.insert_text((72, 100), "Fact or Fiction", fontsize=18, fontname="hebo")
+    p1.insert_text((72, 170), "Abstract", fontsize=12, fontname="hebo")
+    p1.insert_textbox(pymupdf.Rect(72, 180, 520, 250), "We introduce scientific claim verification. " + BODY, fontsize=10)
+    p1.insert_text((72, 290), "1 Introduction", fontsize=12, fontname="hebo")
+    p1.insert_textbox(pymupdf.Rect(72, 300, 520, 400), BODY * 2, fontsize=10)
+    p2 = _page(doc)
+    p2.insert_text((72, 100), "References", fontsize=12, fontname="hebo")
+    y = 120
+    for first, cont in (("Ramy Baly, Mitra Mohtarami, and James Glass.", "2018. Integrating stance detection and fact checking."),
+                        ("Iain Marshall and Byron Wallace.", "2019. Toward systematic review automation.")):
+        p2.insert_text((72, y), first, fontsize=9)
+        p2.insert_text((83, y + 11), cont, fontsize=9)       # hanging indent
+        y += 30
+    p2.insert_text((72, 300), "A Annotation Details", fontsize=12, fontname="hebo")
+    p2.insert_textbox(pymupdf.Rect(72, 310, 520, 400), BODY * 2, fontsize=10)
+    doc.save(path); doc.close()
+    return path
+
+
+def test_real_style_pdf(tmp_path):
+    d = PyMuPDFIngestor().ingest(str(make_real_style(tmp_path / "r.pdf")))
+    assert d.title == "Fact or Fiction"                      # not the rotated stamp
+    assert d.doc_id == "arxiv:2004.14974" and d.year == 2020  # id still read from rotated text
+    assert "scientific claim verification" in d.abstract
+    assert len(d.references) == 2 and d.references[1].year == 2019   # hanging indent
+    assert [s.title for s in d.sections] == ["Introduction", "Annotation Details"]   # appendix ends references
+
+
+def test_ligatures_are_normalised():
+    from researchlens.ingestion.pymupdf_ingestor import _clean
+    assert _clean("scientiﬁc veriﬁcation ﬂow e\u0000ﬃcient".replace("\u0000", "")) == "scientific verification flow efficient"

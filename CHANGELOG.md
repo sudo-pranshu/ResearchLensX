@@ -4,7 +4,7 @@ Format: date · type (added / changed / interface / fixed / result) · descripti
 
 ## 2026-11-05 (Day 1)
 - interface · schema 1.1 (additive): `Section.pages`, `Chunk.page` for page-level citations; `chunk_document` propagates the start page
-- added · `PyMuPDFIngestor` (title, abstract, numbered/known headings, margin header/footer removal, de-hyphenation, cross-page paragraph merge, references, arXiv id/year) with 12 tests on self-generated PDFs
+- added · `PyMuPDFIngestor` (title, abstract, numbered/known headings, margin header/footer removal, de-hyphenation, cross-page paragraph merge, references, arXiv id/year) with 14 tests on self-generated PDFs; real-PDF fixes: rotated arXiv stamp ignored (read for id only), ligature normalisation, hanging-indent reference splitting, lettered appendix headings
 - changed · project is solo; team docs removed, freeze moved to 2026-11-27
 - added · Initial scaffold: contracts v1.0, `Pipeline`, mocks, fixtures, retrieval (BM25/TF-IDF/LSA/RRF/linear), evaluation (metrics, clustered stats), QASPER loader, chunker, demo CLI, CI · Pranshu
 - interface · `contracts.SCHEMA_VERSION = "1.0"`: `Document`, `Chunk`, `RetrievedPassage`, `Claim`, `EvidenceJudgement`, `VerificationResult`, `AnswerSentence`, `Answer`, `KGNode`, `KGEdge`, `KnowledgeGraph` + 5 protocols · Pranshu

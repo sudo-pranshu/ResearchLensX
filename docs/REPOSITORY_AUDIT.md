@@ -18,7 +18,7 @@ Tests: `pytest -q` → **40 passed** (4.2 s, CPU, offline). Nothing below is cla
 | QA over multiple docs with citations | **Partial** | `generation/extractive.py`, `llm_rag.py` (Qwen2.5-1.5B), `Pipeline.ask`; no page numbers (Document model has no page info), no uncertainty/"insufficient evidence" abstention in generator |
 | Claim verification (NLI) | **Done on benchmark** | `verification/nli.py` (DeBERTa-v3 + roberta-large-mnli judge), EXP-H2-001 SciFact macro-F1 .596–.681; no calibration, no multi-evidence aggregation beyond max-pool; no natural-language explanations |
 | Verified-RAG reviser | **Done, result inconclusive** | `generation/verified.py`, EXP-H2-002 (generator emits 0.15 citations/answer → confounded) |
-| PDF ingestion | **Implemented 2026-11-14, tested on synthetic PDFs only** (real-paper validation pending) | `ingestion/pymupdf_ingestor.py`, `tests/test_ingestion.py` |
+| PDF ingestion | **Implemented 2026-11-14, tested on synthetic PDFs and 5 real arXiv PDFs; reference splitting approximate** | `ingestion/pymupdf_ingestor.py`, `tests/test_ingestion.py` |
 | Knowledge graph | **Missing (stub)** | `knowledge_graph/builder.py`; `networkx` installed, `pyvis` not |
 | Research-gap engine | **Missing** (no module, no design doc) | — |
 | Literature-review / report generator + export | **Missing** | — |

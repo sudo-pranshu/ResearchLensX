@@ -27,6 +27,7 @@ from pathlib import Path
 from researchlens.contracts import Document, Reference, Section
 
 NUMBERED = re.compile(r"^(\d+(?:\.\d+)*)\.?\s+[A-Z]")
+LETTERED = re.compile(r"^[A-Z](?:\.\d+)*\.?\s+[A-Z]")      # appendix headings: "A Details", "B.1 Setup"
 KNOWN_HEADINGS = {
     "abstract", "introduction", "background", "related work", "preliminaries", "methods", "method",
     "methodology", "approach", "model", "experiments", "experimental setup", "results", "discussion",
@@ -50,26 +51,37 @@ class _Block:
     y0: float
     y1: float
     height: float       # page height
+    line_x0: tuple = ()  # left edge of each line (hanging-indent detection in references)
+
+
+_LIGATURES = str.maketrans({"ﬁ": "fi", "ﬂ": "fl", "ﬀ": "ff", "ﬃ": "ffi", "ﬄ": "ffl", "ﬅ": "st", "ﬆ": "st"})
 
 
 def _clean(text: str) -> str:
+    text = text.translate(_LIGATURES)
     text = re.sub(r"(\w)-\s*\n\s*([a-z])", r"\1\2", text)     # de-hyphenate line breaks
     return re.sub(r"\s+", " ", text).strip()
 
 
-def _extract_blocks(pdf) -> list[_Block]:
+def _extract_blocks(pdf) -> tuple[list[_Block], str]:
+    """Horizontal text blocks, plus the text of rotated lines (e.g. the arXiv sidebar stamp)."""
     blocks: list[_Block] = []
+    rotated: list[str] = []
     for pno, page in enumerate(pdf, start=1):
         h = float(page.rect.height)
         for b in page.get_text("dict")["blocks"]:
             if b.get("type") != 0:
                 continue
-            lines, sizes, bold_chars, chars = [], Counter(), 0, 0
+            lines, x0s, sizes, bold_chars, chars = [], [], Counter(), 0, 0
             for ln in b["lines"]:
                 txt = "".join(s["text"] for s in ln["spans"])
                 if not txt.strip():
                     continue
+                if abs(ln["dir"][0]) < 0.99:           # rotated (vertical) text is never body text
+                    rotated.append(txt)
+                    continue
                 lines.append(txt)
+                x0s.append(float(ln["bbox"][0]))
                 for s in ln["spans"]:
                     n = len(s["text"].strip())
                     if n:
@@ -81,8 +93,8 @@ def _extract_blocks(pdf) -> list[_Block]:
                 continue
             y0, _, _, y1 = b["bbox"]
             blocks.append(_Block("\n".join(lines), sizes.most_common(1)[0][0], bold_chars > 0.6 * chars,
-                                 pno, len(lines), y0, y1, h))
-    return blocks
+                                 pno, len(lines), y0, y1, h, tuple(x0s)))
+    return blocks, " ".join(rotated)
 
 
 def _drop_margins(blocks: list[_Block], n_pages: int) -> list[_Block]:
@@ -114,14 +126,16 @@ def _is_heading(b: _Block, body: float) -> bool:
     plain = re.sub(r"^\d+(?:\.\d+)*\.?\s+", "", t).strip().rstrip(".:").lower()
     if plain in KNOWN_HEADINGS and (b.bold or b.size > body * 1.02 or NUMBERED.match(t) or len(t) < 25):
         return True
-    if NUMBERED.match(t) and (b.bold or b.size > body * 1.05) and not t.endswith("."):
+    if (NUMBERED.match(t) or LETTERED.match(t)) and (b.bold or b.size > body * 1.05) and not t.endswith("."):
         return True
     return b.size > body * 1.15 and not t.endswith(".") and len(t.split()) <= 12
 
 
 def _level(t: str) -> int:
     m = NUMBERED.match(t)
-    return m.group(1).count(".") + 1 if m else 1
+    if m:
+        return m.group(1).count(".") + 1
+    return t.split()[0].count(".") + 1 if LETTERED.match(t) and "." in t.split()[0].rstrip(".") else 1
 
 
 def _split_references(blocks: list[_Block]) -> list[Reference]:
@@ -136,7 +150,21 @@ def _split_references(blocks: list[_Block]) -> list[Reference]:
             else:
                 entries[-1] = _clean(entries[-1] + "\n" + ln)
     else:
-        entries = [_clean(b.text) for b in blocks if _clean(b.text)]
+        # Unnumbered styles use a hanging indent: an entry's first line sits at the column's left edge,
+        # continuation lines are indented. PyMuPDF splits entries into several blocks, so scan lines in order.
+        flat = [(x0, ln) for b in blocks for ln, x0 in zip([l for l in b.text.split("\n") if l.strip()], b.line_x0)]
+        prev, left = None, 0.0
+        for x0, ln in flat:
+            if prev is None or abs(x0 - prev) > 100:        # first line, or column change
+                left, new = x0, True
+            else:
+                new = x0 <= left + 2
+                left = min(left, x0)
+            prev = x0
+            if new or not entries:
+                entries.append(_clean(ln))
+            else:
+                entries[-1] = _clean(entries[-1] + "\n" + ln)
     refs = []
     for e in entries:
         m = re.search(r"\b(19|20)\d{2}[a-z]?\b", e)
@@ -154,7 +182,7 @@ class PyMuPDFIngestor:
         raw = path.read_bytes()
         pdf = pymupdf.open(stream=raw, filetype="pdf")
         try:
-            blocks = _extract_blocks(pdf)
+            blocks, rotated_text = _extract_blocks(pdf)
             meta = pdf.metadata or {}
             n_pages = pdf.page_count
         finally:
@@ -162,7 +190,7 @@ class PyMuPDFIngestor:
         if not blocks or sum(len(b.text) for b in blocks) < 200:
             raise ValueError(f"{path.name}: no extractable text (scanned PDF? OCR is not supported)")
 
-        first_page_text = " ".join(b.text for b in blocks if b.page == 1)
+        first_page_text = " ".join(b.text for b in blocks if b.page == 1) + " " + rotated_text
         m = ARXIV.search(first_page_text)
         doc_id = f"arxiv:{m.group(1)}" if m else hashlib.sha1(raw).hexdigest()[:12]
         year = 2000 + int(m.group(1)[:2]) if m and 7 <= int(m.group(1)[:2]) <= 99 else None
@@ -202,7 +230,7 @@ class PyMuPDFIngestor:
                     in_refs = True
                     continue
                 in_refs = False
-                cur = (re.sub(r"^\d+(?:\.\d+)*\.?\s+", "", t).rstrip(":"), _level(t), [], [])
+                cur = (re.sub(r"^(?:\d+(?:\.\d+)*|[A-Z](?:\.\d+)*)\.?\s+", "", t).rstrip(":"), _level(t), [], [])
                 sections.append(cur)
                 continue
             if in_refs:
