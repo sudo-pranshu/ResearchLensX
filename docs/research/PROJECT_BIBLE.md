@@ -2,18 +2,18 @@
 
 **Evidence-Aware Scientific Literature Understanding and Cross-Paper Reasoning Using Hybrid NLP**
 
-B.Tech E&TC final-year project · Author: Pranshu Kumar (sole developer) · Version 1.0 · 2026-11-05 (Day 1 of 14) · Submission freeze: **2026-11-27** (moved from 11-18, see IMPLEMENTATION_ROADMAP.md)
+ResearchLens X, Scientific Research Intelligence Platform · Author and maintainer: Pranshu Kumar · Research specification v1.0 (2026-11-05), register current as of 2026-11-14
 
-This document is the single source of truth. The other documents expand on one section each:
+This document is the research specification and the experiment register. The other documents expand on one section each:
 
 | Section | Detailed in |
 |---|---|
-| C Architecture | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| C Architecture | [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) |
 | D Author | Pranshu Kumar (sole developer); see section D |
 | B/G Experiments | [EXPERIMENT_PROTOCOL.md](EXPERIMENT_PROTOCOL.md) |
 | F Datasets | [DATASET_REGISTER.md](DATASET_REGISTER.md) |
 | H Conventions | section H |
-| J Status | [PROJECT_STATE.md](PROJECT_STATE.md) |
+| J Status | [PROJECT_STATE.md](../development/PROJECT_STATE.md) |
 
 If a detailed document disagrees with this one, **this one wins** and the other must be fixed in the same PR that notices the conflict.
 
@@ -47,7 +47,7 @@ The components themselves (BM25, SPECTER2, RRF, NLI verification) are establishe
 
 ## B. Research specification
 
-Full procedures: [EXPERIMENT_PROTOCOL.md](EXPERIMENT_PROTOCOL.md). Changes from v0.1, with reasons: [docs/RESEARCH_DESIGN_REVIEW.md](docs/RESEARCH_DESIGN_REVIEW.md).
+Full procedures: [EXPERIMENT_PROTOCOL.md](EXPERIMENT_PROTOCOL.md). Changes from v0.1, with reasons: [docs/RESEARCH_DESIGN_REVIEW.md](RESEARCH_DESIGN_REVIEW.md).
 
 **Decision rule (all confirmatory tests):** a hypothesis is *supported* if the primary metric improves on **every** named baseline with Holm-adjusted p < 0.05 **and** the 95% CI of the improvement excludes 0. Otherwise it is *not supported*, and we report that.
 
@@ -145,14 +145,4 @@ Branches `main` (stable) ← `develop` (integration) ← `feature/<topic>`. PRs 
 | ADR-011 | 11-05 | Experiments run one transformer at a time and set KMP_DUPLICATE_LIB_OK / OMP_NUM_THREADS=1 on macOS | — | 8 GB laptops thrash; torch+faiss libomp clash caused aborts/segfaults |
 
 ## J. Status
-See [PROJECT_STATE.md](PROJECT_STATE.md). 14-day plan:
-
-| Days | Dates | Goal | Exit criterion |
-|---|---|---|---|
-| 1–2 | 11-05→11-06 | Setup, contracts, datasets, baselines | Repo + CI green; QASPER & SciFact audited; classical H1 dev run committed; first module skeletons passing tests |
-| 3–4 | 11-07→11-08 | Independent modules | SPECTER2/e5 dev results; zero-shot NLI on SciFact dev; PyMuPDF ingestor on 10 PDFs |
-| 5–6 | 11-09→11-10 | Integration | `Pipeline` with hybrid retriever + real verifier; Streamlit app shows real outputs |
-| 7–8 | 11-11→11-12 | Evaluation | H1 test runs (once); H2 generations cached; H2 metrics; human eval done |
-| 9–10 | 11-13→11-14 | Advanced features & UI | KG view, comparison view, H3 case studies |
-| 11–12 | 11-15→11-16 | Testing & docs | Test coverage of every module; docs consistent; demo script |
-| 13–14 | 11-17→11-18 | Report, slides, freeze | Tag `v1.0`; no code changes after the freeze except blocker fixes |
+See [PROJECT_STATE.md](../development/PROJECT_STATE.md) for the current state and [IMPLEMENTATION_ROADMAP.md](../development/IMPLEMENTATION_ROADMAP.md) for planned work.

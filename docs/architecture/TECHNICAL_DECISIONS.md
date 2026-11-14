@@ -1,6 +1,6 @@
 # Technical decisions
 
-Early decisions (ADR-001 to ADR-011) are in [PROJECT_BIBLE.md §I](PROJECT_BIBLE.md). Decisions made while building the product layer:
+Early decisions (ADR-001 to ADR-011) are in [PROJECT_BIBLE.md §I](../research/PROJECT_BIBLE.md). Decisions made while building the product layer:
 
 | ID | Decision | Why | Alternative rejected |
 |---|---|---|---|

@@ -1,6 +1,6 @@
 # Architecture
 
-Authoritative summary: [PROJECT_BIBLE.md §C](PROJECT_BIBLE.md#c-architecture-summary). This file holds the detail.
+Authoritative summary: [PROJECT_BIBLE.md §C](../research/PROJECT_BIBLE.md#c-architecture-summary). This file holds the detail.
 
 ## 1. Component diagram
 

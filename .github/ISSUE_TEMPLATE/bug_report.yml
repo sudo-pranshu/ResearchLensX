@@ -1,0 +1,18 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes: {label: What happened, description: "What did you do, what did you expect, what happened instead?"}
+    validations: {required: true}
+  - type: textarea
+    id: repro
+    attributes: {label: Steps to reproduce, description: "Commands or clicks; a minimal PDF is not required, never attach private documents."}
+    validations: {required: true}
+  - type: input
+    id: env
+    attributes: {label: Environment, description: "OS, Python version, `pip list | grep -i -E 'torch|pymupdf|streamlit'`"}
+  - type: textarea
+    id: logs
+    attributes: {label: Logs or traceback, render: text}

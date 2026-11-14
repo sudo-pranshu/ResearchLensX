@@ -2,7 +2,7 @@
 # One-command reproducible evaluation suite.
 #   ./scripts/run_eval.sh            # fast: tests + CPU-only experiments (a few minutes; needs QASPER dev, see scripts/download_qasper.sh)
 #   ./scripts/run_eval.sh --full     # also the model-based dev runs (needs the dense extra; ~1 h on an 8 GB laptop)
-# Results go to results/<EXP-ID>/ ; the register is PROJECT_BIBLE.md section G. The test split is NEVER run here.
+# Results go to results/<EXP-ID>/ ; the register is docs/research/PROJECT_BIBLE.md section G. The test split is NEVER run here.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY="${PYTHON:-python}"

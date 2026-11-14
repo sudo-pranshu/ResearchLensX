@@ -39,3 +39,6 @@ artifacts/
 .claude/settings.local.json
 .claude/launch.json
 results/_rerun/
+
+# local runtime state
+.rlx/

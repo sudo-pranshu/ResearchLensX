@@ -1,0 +1,12 @@
+name: Scientific or accuracy concern
+description: A wrong number, an overclaim, a flawed metric or a misleading output
+labels: [research]
+body:
+  - type: textarea
+    id: claim
+    attributes: {label: What is wrong, description: "Quote the statement, number or output and where it appears."}
+    validations: {required: true}
+  - type: textarea
+    id: evidence
+    attributes: {label: Evidence, description: "Result file, paper, calculation or reference that shows the problem."}
+    validations: {required: true}

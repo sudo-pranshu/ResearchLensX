@@ -100,7 +100,7 @@ The SciDocs/BEIR numbers are reported for context only, because SPECTER2 was tra
 - **Section-aware chunking:** chunks never cross section boundaries, and each is prefixed with `"{title} | {section}"`. Default unit is the paragraph, split if over 256 tokens with a 32-token overlap. Tables are serialised as caption + row-major text.
 
 ### B. Classical NLP
-Choose these components for their usefulness to the system, not to fill out a syllabus:
+Choose these components for their usefulness to the system, not for topic coverage:
 
 | Component | Where it does real work | Evaluation |
 |---|---|---|

@@ -3,10 +3,13 @@ on:
   push:
     branches: [main, develop]
   pull_request:
+permissions:
+  contents: read
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python: ["3.10", "3.12"]
     steps:
@@ -15,5 +18,22 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pip
-      - run: pip install -r requirements.txt && pip install -e .
-      - run: python -m pytest -q
+      - name: Install (core + app extras, no PyTorch)
+        run: pip install -r requirements.txt -r requirements-app.txt && pip install --no-deps -e .
+      - name: Tests
+        run: python -m pytest -q
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Documentation gate (links, stale wording, required files)
+        run: python scripts/check_docs.py
+  launcher:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell syntax
+        run: for f in run.sh scripts/*.sh; do bash -n "$f"; done

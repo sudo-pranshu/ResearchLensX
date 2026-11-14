@@ -9,7 +9,7 @@ from pathlib import Path
 from researchlens.mocks import load_sample_documents  # noqa: E402
 from researchlens.store.corpus import CorpusStore      # noqa: E402
 
-APP = str(Path(__file__).resolve().parents[1] / "app" / "streamlit_app.py")
+APP = str(Path(__file__).resolve().parents[1] / "apps" / "streamlit" / "streamlit_app.py")
 
 
 @pytest.fixture()

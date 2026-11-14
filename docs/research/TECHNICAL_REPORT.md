@@ -1,7 +1,7 @@
 # ResearchLens X: technical report
 
 **Evidence-aware scientific literature understanding and cross-paper reasoning with hybrid NLP**
-Pranshu Kumar, B.Tech E&TC final-year project. Version of 2026-11-14. Source of truth for numbers: `results/` and the register in `PROJECT_BIBLE.md` §G. Limits: `KNOWN_LIMITATIONS.md`.
+Pranshu Kumar. Version of 2026-11-14. Source of truth for numbers: `results/` and the register in `PROJECT_BIBLE.md` §G. Limits: `KNOWN_LIMITATIONS.md`.
 
 ## 1. Summary
 ResearchLens X is a local application and an evaluation framework for working with a set of uploaded research papers: parse PDFs, search them, answer questions with page-level citations, check claims against the text with an NLI model, compare papers, build a provenance-grounded knowledge graph, list candidate research gaps and export a cited literature review. Two hypotheses were pre-registered and tested; one was **not supported** (H1) and one is **not yet decided** (H2). A third (H3, cross-paper reasoning) is exploratory. Everything the application shows is traceable to a quote and a page, and no text is written by a generative model in the application.

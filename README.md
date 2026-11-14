@@ -1,7 +1,7 @@
 # ResearchLens X
 
-**Evidence-aware scientific literature understanding and cross-paper reasoning with hybrid NLP**
-B.Tech E&TC final-year project by Pranshu Kumar.
+**ResearchLens X: Scientific Research Intelligence Platform**
+Created and maintained by Pranshu Kumar.
 
 Upload research PDFs, search them, ask questions across them with **page-level citations**, check claims with an **NLI model**, compare papers, explore a **provenance-grounded knowledge graph**, see **candidate research gaps** and export a **cited literature review**. It runs locally, needs no API key, and never writes text with a generative model: answers are sentences copied from the papers, and every claim points to a paper, section, page and quote.
 
@@ -29,7 +29,7 @@ It is also a research framework. Two hypotheses were pre-registered: **H1 (hybri
 | Confidence calibration (dev, out-of-fold) | ECE .183 → .067 |
 | H2 verified RAG, QASPER **dev** pilot (100 Q, 1.5B generator) | citation precision .420 → .785 (77 paired questions), but Answer-F1 −.060 fails the 2-pt guard; **partially supported, not confirmed**; test split not run |
 
-Limitations are in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md). Gaps are collection-scoped and never claimed novel; extraction is rule-based; Colab notebooks were not executed here.
+Limitations are in [KNOWN_LIMITATIONS.md](docs/user-guide/KNOWN_LIMITATIONS.md). Gaps are collection-scoped and never claimed novel; extraction is rule-based; Colab notebooks were not executed here.
 
 ## Quick start
 ```bash
@@ -40,14 +40,14 @@ python -m pytest -q                          # 129 tests with all three requirem
 streamlit run app/streamlit_app.py           # the app (first NLI/rerank use downloads models)
 ./scripts/run_eval.sh                        # tests + CPU experiments; add --full for the model-based dev runs
 ```
-Walk-through: [docs/DEMO_WORKFLOW.md](docs/DEMO_WORKFLOW.md). Data: `./scripts/download_qasper.sh`, `./scripts/download_scifact.sh` (QASPER CC BY 4.0, SciFact CC BY-NC 2.0; raw data and PDFs are not redistributed).
+Walk-through: [docs/DEMO_WORKFLOW.md](docs/user-guide/DEMO_WORKFLOW.md). Data: `./scripts/download_qasper.sh`, `./scripts/download_scifact.sh` (QASPER CC BY 4.0, SciFact CC BY-NC 2.0; raw data and PDFs are not redistributed).
 
 ## Documents
 | Doc | Content |
 |---|---|
-| [docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md) | the report |
-| [ARCHITECTURE.md](ARCHITECTURE.md), [TECHNICAL_DECISIONS.md](TECHNICAL_DECISIONS.md) | design and decisions |
-| [EXPERIMENT_LOG.md](EXPERIMENT_LOG.md), [EXPERIMENT_PROTOCOL.md](EXPERIMENT_PROTOCOL.md), [DATASET_REGISTER.md](DATASET_REGISTER.md) | experiments and data |
-| [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) | honest limits |
-| [PROJECT_BIBLE.md](PROJECT_BIBLE.md), [PROJECT_STATE.md](PROJECT_STATE.md), [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md) | plan, state, roadmap |
-| [docs/REPOSITORY_AUDIT.md](docs/REPOSITORY_AUDIT.md), [MODEL_USAGE_LEDGER.md](MODEL_USAGE_LEDGER.md) | audit and model-usage ledger |
+| [docs/TECHNICAL_REPORT.md](docs/research/TECHNICAL_REPORT.md) | the report |
+| [ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md), [TECHNICAL_DECISIONS.md](docs/architecture/TECHNICAL_DECISIONS.md) | design and decisions |
+| [EXPERIMENT_LOG.md](docs/research/EXPERIMENT_LOG.md), [EXPERIMENT_PROTOCOL.md](docs/research/EXPERIMENT_PROTOCOL.md), [DATASET_REGISTER.md](docs/research/DATASET_REGISTER.md) | experiments and data |
+| [KNOWN_LIMITATIONS.md](docs/user-guide/KNOWN_LIMITATIONS.md) | honest limits |
+| [PROJECT_BIBLE.md](docs/research/PROJECT_BIBLE.md), [PROJECT_STATE.md](docs/development/PROJECT_STATE.md), [IMPLEMENTATION_ROADMAP.md](docs/development/IMPLEMENTATION_ROADMAP.md) | plan, state, roadmap |
+| [docs/REPOSITORY_AUDIT.md](docs/development/REPOSITORY_AUDIT.md), [MODEL_USAGE_LEDGER.md](docs/development/MODEL_USAGE_LEDGER.md) | audit and model-usage ledger |

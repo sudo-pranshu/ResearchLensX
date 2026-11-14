@@ -1,6 +1,6 @@
 # Research Design v0.1: Critical Review → v1.0
 
-Date: 2026-11-05 (Day 1). Reviewer: Pranshu Kumar. Status: **accepted**, and v1.0 is now the specification in [PROJECT_BIBLE.md §B](../PROJECT_BIBLE.md#b-research-specification).
+Date: 2026-11-05 (Day 1). Reviewer: Pranshu Kumar. Status: **accepted**, and v1.0 is now the specification in [PROJECT_BIBLE.md §B](PROJECT_BIBLE.md#b-research-specification).
 v0.1 is kept unchanged for the record in [RESEARCH_DESIGN.md](RESEARCH_DESIGN.md).
 
 The review is grounded in two pieces of evidence: (a) the dataset audit on Day 1, and (b) H1 classical baselines on QASPER dev, which were run before the review (uncommitted, question-level CIs; see EXP-H1-001/002 for the committed reruns).
@@ -24,7 +24,7 @@ The review is grounded in two pieces of evidence: (a) the dataset audit on Day 1
 | R13 | SPECTER2 exposure | SPECTER2 was trained on S2 citation data, which may include QASPER/SciFact papers (document exposure, not label leakage) | Model card | Stated as a validity threat. SciDocs/SciRepEval comparisons are dropped entirely, so no unfair benchmark is reported. e5 (general-purpose) is the control |
 | R14 | Novelty | v0.1 risks implying novel methods. Hybrid retrieval with RRF, NLI claim verification and ALCE-style citation evaluation are all established | Literature | Contributions are re-stated as: (1) a **controlled, statistically sound evaluation** of these techniques for scientific QA on QASPER/SciFact, and (2) an **integrated, reproducible, CPU-runnable system**. No claim of new algorithms |
 | R15 | H3 data | No cross-paper benchmark exists in the chosen data; the 120-question set from v0.1 is not feasible in 14 days | Time | H3 is exploratory: about 10 documented comparison case studies via `Pipeline.compare` + the KG, presented qualitatively, with **no significance claims** |
-| R16 | Syllabus NLP | Classical components must not be passed off as contributions | — | Kept and labelled as "supporting": TF-IDF/BM25/LSA (H1 baselines), Logistic Regression claim classifier, optional LDA topic facet. HMM/Earley are optional only if time allows |
+| R16 | Classical NLP components | Classical components must not be passed off as contributions | — | Kept and labelled as "supporting": TF-IDF/BM25/LSA (H1 baselines), Logistic Regression claim classifier, optional LDA topic facet. HMM/Earley are optional only if time allows |
 
 ## Preliminary classical results (dev, uncommitted run, question-level CIs, superseded by EXP-H1-001)
 

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/sudo-pranshu/ResearchLensX/security/advisories/new
+    about: Please do not file security issues publicly.
