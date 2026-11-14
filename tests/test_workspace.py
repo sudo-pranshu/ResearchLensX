@@ -93,3 +93,66 @@ def test_default_verifier_is_the_validated_passage_level_configuration(monkeypat
 def test_remove_document(ws):
     doc_id = ws.library()[0].doc_id
     assert ws.remove(doc_id) and ws.library() == []
+
+
+# ---- Phase 4 step 4: per-call verifier, one model load, serialised inference ---------------------------------------
+class _FakeNLI:
+    name = "fake-nli"
+    constructed = 0
+
+    def __init__(self, *a, **k):
+        type(self).constructed += 1
+
+    def __call__(self, premises, hyps):
+        import numpy as np
+        return np.array([[0.9, 0.05, 0.05]] * len(premises))
+
+
+def test_concurrent_ask_with_and_without_verification_never_interfere(ws, monkeypatch):
+    import threading
+    import researchlens.verification.nli as nli
+    _FakeNLI.constructed = 0
+    monkeypatch.setattr(nli, "HFNLIScorer", _FakeNLI)
+    results, errors = [], []
+
+    def work(verify):
+        try:
+            res, _ = ws.ask("how are ranked lists fused", Settings(verify=verify))
+            results.append((verify, {s.status for s in res.sentences}))
+        except Exception as e:                      # pragma: no cover
+            errors.append(repr(e))
+    ts = [threading.Thread(target=work, args=(i % 2 == 0,)) for i in range(16)]
+    [t.start() for t in ts]; [t.join(timeout=60) for t in ts]
+    assert not errors and len(results) == 16
+    for verify, statuses in results:
+        assert (statuses == {"unchecked"}) is (not verify), (verify, statuses)      # each response matches ITS request
+    assert _FakeNLI.constructed == 1                                                # the NLI model was built exactly once
+    qa, _ = ws.engine(Settings())
+    assert qa.verifier is None                                                      # the shared engine was never mutated
+
+
+def test_every_model_touching_call_runs_on_the_inference_thread(ws):
+    import threading
+    seen = []
+    orig = ws._search
+    ws._search = lambda *a, **k: (seen.append(threading.get_ident()), orig(*a, **k))[1]
+    ws.search("fusion", Settings()); ws.search("ranked lists", Settings())
+    assert len(set(seen)) == 1 and seen[0] != threading.get_ident()
+
+
+def test_scoped_engines_share_models_and_stale_fallbacks_are_forgotten(ws, monkeypatch):
+    import researchlens.retrieval.rerank as rr
+    import numpy as np
+    calls = {"fail": True}
+    def flaky(self, q, texts):                       # fully offline: never loads a real cross-encoder
+        if calls["fail"]:
+            raise OSError("offline")
+        return np.zeros(len(texts))
+    monkeypatch.setattr(rr.CrossEncoderScorer, "scores", flaky)
+    ws.search("fusion", Settings(rerank=True))
+    assert ws.status(Settings(rerank=True))[3].state == "fallback"
+    ws.models.release("rerank:cross-encoder/ms-marco-MiniLM-L-6-v2")
+    calls["fail"] = False
+    ws._engines.clear()
+    ws.search("fusion", Settings(rerank=True, k=3))
+    assert {c.name: c for c in ws.status(Settings(rerank=True))}["Reranker"].state != "fallback"     # forgotten once it works

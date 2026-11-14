@@ -39,7 +39,8 @@ class Pipeline:
 
 
 def build_default_pipeline(documents: list[Document], retriever: str = "bm25", verifier=None,
-                           rerank: bool = False, dedup_threshold: float | None = 0.85, cache_dir: str | None = None) -> Pipeline:
+                           rerank: bool = False, dedup_threshold: float | None = 0.85, cache_dir: str | None = None,
+                           models=None, cache=None) -> Pipeline:
     """BM25/TF-IDF (CPU, offline) or any registry spec such as "lsa", "e5" or "rrf:bm25+e5" (neural specs need the dense extra),
     optional cross-encoder rerank, extractive generator, optional verifier. Redundant passages are suppressed by default;
     pass dedup_threshold=None to disable."""
@@ -57,11 +58,14 @@ def build_default_pipeline(documents: list[Document], retriever: str = "bm25", v
         # dense or hybrid spec from the registry (e.g. "e5", "rrf:bm25+e5", "lsa"); embeddings are cached on disk
         from researchlens.retrieval.registry import RetrievalConfig, build_systems
         texts = [c.index_text(titles.get(c.doc_id, "")) for c in chunks]
-        systems, _, _ = build_systems([retriever], texts, RetrievalConfig(batch_size=8, cache_dir=cache_dir), log=lambda *_: None)
+        systems, _, _ = build_systems([retriever], texts, RetrievalConfig(batch_size=8, cache_dir=cache_dir), log=lambda *_: None,
+                                      models=models, cache=cache)
         first, fit_first = systems[retriever], False
     if rerank:
         from researchlens.retrieval.rerank import CrossEncoderScorer, RerankRetriever
-        base = RerankRetriever(first, CrossEncoderScorer(), fit_first_stage=fit_first)
+        scorer = (models.get("rerank:cross-encoder/ms-marco-MiniLM-L-6-v2", CrossEncoderScorer, 200 * 1024 * 1024)
+                  if models is not None else CrossEncoderScorer())
+        base = RerankRetriever(first, scorer, fit_first_stage=fit_first)
         if not fit_first:
             base.fit([c.index_text(titles.get(c.doc_id, "")) for c in chunks])
             index = ChunkIndex(base, chunks, titles, prefit=True, name=f"rerank:{retriever}", dedup_threshold=dedup_threshold)

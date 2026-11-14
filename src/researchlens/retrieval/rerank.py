@@ -11,6 +11,7 @@ search, not scientific text; whether it helps here is an empirical question (EXP
 """
 from __future__ import annotations
 
+from collections import OrderedDict
 from typing import Sequence
 
 import numpy as np
@@ -23,10 +24,11 @@ DEFAULT_RERANKER = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 class CrossEncoderScorer:
     """Lazily loaded sentence-transformers CrossEncoder; `release()` frees it (one model at a time)."""
 
-    def __init__(self, model: str = DEFAULT_RERANKER, batch_size: int = 16, max_length: int = 512):
+    def __init__(self, model: str = DEFAULT_RERANKER, batch_size: int = 16, max_length: int = 512, max_cache: int = 100_000):
         self.model_name, self.batch_size, self.max_length = model, batch_size, max_length
         self._model = None
-        self._cache: dict[tuple[str, str], float] = {}     # (query, text) -> score; shared across systems
+        self.max_cache = max_cache
+        self._cache: "OrderedDict[tuple[str, str], float]" = OrderedDict()     # (query, text) -> score, LRU-bounded
         self.n_pairs_scored = 0
 
     def _load(self):
@@ -45,10 +47,16 @@ class CrossEncoderScorer:
             for t, s in zip(todo, np.asarray(out, dtype=float).reshape(-1)):
                 self._cache[(query, t)] = float(s)
             self.n_pairs_scored += len(todo)
-        return np.array([self._cache[(query, t)] for t in texts])
+        scores = np.array([self._cache[(query, t)] for t in texts])
+        for t in texts:
+            self._cache.move_to_end((query, t))
+        while len(self._cache) > self.max_cache:
+            self._cache.popitem(last=False)
+        return scores
 
     def release(self) -> None:
         self._model = None
+        self._cache.clear()
 
 
 class RerankRetriever(Retriever):

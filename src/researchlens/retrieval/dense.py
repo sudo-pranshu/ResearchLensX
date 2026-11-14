@@ -47,8 +47,9 @@ class DenseRetriever(Retriever):
     """
 
     def __init__(self, encoder, name: str | None = None, cache: EmbeddingCache | None = None,
-                 use_faiss: bool | None = None):
+                 use_faiss: bool | None = None, max_queries: int = 8192):
         self.encoder = encoder
+        self.max_queries = max_queries       # memoised query vectors are bounded (oldest dropped first)
         self.name = name or type(encoder).__name__
         self.cache = cache
         self.use_faiss = _faiss_available() if use_faiss is None else use_faiss
@@ -77,6 +78,8 @@ class DenseRetriever(Retriever):
         if todo:
             for q, e in zip(todo, l2norm(self._encode("query", todo))):
                 self._q[q] = e
+            while len(self._q) > self.max_queries:
+                self._q.pop(next(iter(self._q)))          # drop the oldest memoised query vector
 
     def _qvec(self, query: str) -> np.ndarray:
         if query not in self._q:

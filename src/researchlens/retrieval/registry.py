@@ -32,8 +32,13 @@ class RetrievalConfig:
     extra: dict = field(default_factory=dict)
 
 
-def make_base(name: str, cfg: RetrievalConfig, cache: EmbeddingCache | None = None):
+def make_base(name: str, cfg: RetrievalConfig, cache: EmbeddingCache | None = None, models=None):
+    """`models` (a ModelManager) makes neural encoders shared singletons; without it each call builds its own (experiments)."""
     from . import dense as D
+    from researchlens.models import EST_MB, MB
+
+    def shared(key, factory):
+        return models.get(f"enc:{key}", factory, EST_MB.get(key, 600) * MB) if models is not None else factory()
     if name == "bm25":
         return BM25Retriever(k1=cfg.bm25_k1, b=cfg.bm25_b)
     if name == "tfidf":
@@ -41,15 +46,15 @@ def make_base(name: str, cfg: RetrievalConfig, cache: EmbeddingCache | None = No
     if name == "lsa":
         return D.DenseRetriever(D.LSAEncoder(n_components=cfg.lsa_dim), name="lsa")
     if name == "e5":
-        enc = D.SentenceTransformerEncoder("intfloat/e5-base-v2", "query: ", "passage: ", batch_size=cfg.batch_size)
+        enc = shared("e5", lambda: D.SentenceTransformerEncoder("intfloat/e5-base-v2", "query: ", "passage: ", batch_size=cfg.batch_size))
     elif name == "bge":
-        enc = D.SentenceTransformerEncoder("BAAI/bge-base-en-v1.5",
+        enc = shared("bge", lambda: D.SentenceTransformerEncoder("BAAI/bge-base-en-v1.5",
                                            "Represent this sentence for searching relevant passages: ",
-                                           batch_size=cfg.batch_size)
+                                           batch_size=cfg.batch_size))
     elif name == "scibert":
-        enc = D.MeanPoolEncoder(batch_size=cfg.batch_size)
+        enc = shared("scibert", lambda: D.MeanPoolEncoder(batch_size=cfg.batch_size))
     elif name == "specter2":
-        enc = D.Specter2Encoder(batch_size=cfg.batch_size)
+        enc = shared("specter2", lambda: D.Specter2Encoder(batch_size=cfg.batch_size))
     else:
         raise ValueError(f"unknown retriever spec {name!r}")
     return D.DenseRetriever(enc, name=name, cache=cache)
@@ -65,16 +70,16 @@ def components(spec: str) -> list[str]:
     return [spec]
 
 
-def build_systems(specs, docs, cfg: RetrievalConfig, log=print, queries=None):
+def build_systems(specs, docs, cfg: RetrievalConfig, log=print, queries=None, models=None, cache=None):
     """If `queries` is given, each neural base system embeds them right after fitting and then
     releases its model, so at most one transformer is resident at a time (8 GB machines)."""
-    cache = EmbeddingCache(cfg.cache_dir)
+    cache = cache if cache is not None else EmbeddingCache(cfg.cache_dir)
     base, timings, meta = {}, {}, {}
 
     def get(n):
         if n not in base:
             t = time.time()
-            base[n] = make_base(n, cfg, cache).fit(docs)
+            base[n] = make_base(n, cfg, cache, models).fit(docs)
             enc = getattr(base[n], "encoder", None)
             meta[n] = getattr(enc, "meta", {"model": n})
             if queries is not None and n in NEURAL_NAMES:
@@ -101,7 +106,7 @@ def build_systems(specs, docs, cfg: RetrievalConfig, log=print, queries=None):
     for spec in specs:
         if spec.startswith("rerank:"):
             from .rerank import CrossEncoderScorer, RerankRetriever
-            scorer = scorer or CrossEncoderScorer(cfg.reranker)
+            scorer = scorer or (models.get(f"rerank:{cfg.reranker}", lambda: CrossEncoderScorer(cfg.reranker), 200 * 1024 * 1024) if models is not None else CrossEncoderScorer(cfg.reranker))
             systems[spec] = RerankRetriever(first_stage(spec[7:]), scorer, depth=cfg.rerank_depth, name=spec,
                                             fit_first_stage=False).fit(docs)
         elif spec.startswith("rrf:"):

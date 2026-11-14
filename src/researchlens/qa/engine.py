@@ -101,7 +101,10 @@ class MultiDocQA:
         self.min_coverage = min_coverage
 
     def answer(self, question: str, k: int = 6, max_per_doc: int = 3, doc_ids: Sequence[str] | None = None,
-               where=None, verify: bool = True) -> QAResult:
+               where=None, verify: bool = True, verifier=None) -> QAResult:
+        """`verifier` (optional) is used for this call only; the engine's own verifier is never mutated, so concurrent calls with
+        and without verification cannot interfere."""
+        verifier = verifier if verifier is not None else self.verifier
         import time
         t0 = time.perf_counter()
         kw = {} if where is None else {"where": where}
@@ -120,12 +123,12 @@ class MultiDocQA:
                             timings_ms={"retrieve": (t1 - t0) * 1e3})
         ans = self.generator.generate(question, passages)
         statuses = []
-        do_verify = verify and self.verifier is not None
+        do_verify = verify and verifier is not None
         for i, s in enumerate(ans.sentences):
             ids = [c + 1 for c in s.citations if 0 <= c < len(ans.passages)]
             if do_verify:
                 cited = [ans.passages[c - 1] for c in ids] or ans.passages
-                v = self.verifier.verify(Claim(claim_id=f"a{i}", text=s.text, source="answer"), cited)
+                v = verifier.verify(Claim(claim_id=f"a{i}", text=s.text, source="answer"), cited)
                 s.verification = v
                 labels = {e.label for e in v.evidence}
                 if {"SUPPORTS", "CONTRADICTS"} <= labels:
@@ -138,7 +141,7 @@ class MultiDocQA:
             else:
                 statuses.append(SentenceStatus(text=s.text, ref_ids=ids, status="unchecked"))
         is_mock = bool(ans.is_mock or getattr(self.generator, "is_mock", False)
-                       or (do_verify and getattr(self.verifier, "is_mock", False)))
+                       or (do_verify and getattr(verifier, "is_mock", False)))
         ans.is_mock = is_mock
         used = list(dict.fromkeys(ans.passages[c - 1].chunk.doc_id for s in statuses for c in s.ref_ids))
         return QAResult(question=question, answer=ans, references=self._refs(ans.passages), sentences=statuses,
