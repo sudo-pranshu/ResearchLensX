@@ -88,7 +88,7 @@ done
 scripts/healthcheck.sh --app || { scripts/stop.sh --quiet; die "health checks failed (see messages above)"; }
 
 printf '\n%s\n' "${C_G}${C_B}ResearchLens X is running:  $URL${C_0}"
-echo "  Library page: upload a research PDF to begin. Quick tour: docs/user/DEMO_WORKFLOW.md"
+echo "  Library page: upload a research PDF to begin. Quick tour: docs/user-guide/DEMO_WORKFLOW.md"
 if [ "$OPEN" = 1 ]; then { command -v open >/dev/null && open "$URL"; } || { command -v xdg-open >/dev/null && xdg-open "$URL"; } || true; fi
 if [ "$DETACH" = 1 ]; then echo "  Running in the background. Stop it with: scripts/stop.sh"; exit 0; fi
 echo "  Press Ctrl+C to stop."
