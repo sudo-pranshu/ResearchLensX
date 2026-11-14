@@ -1,6 +1,6 @@
 # Phase 4 results: engine hardening
 
-Branch `feature/phase4-engine-hardening`, 2026-11-14. Goal: make the research engine safe and fast enough to sit behind an API, without changing any scientific behaviour. Baseline 133 tests; now **189 passing** (`.venv`) and 177 passing + 1 skipped without PyTorch (the CI configuration). Design source: `docs/architecture/LOCAL_ARCHITECTURE.md` (with the architecture-review amendments, §12).
+Branch `feature/phase4-engine-hardening`, 2026-11-14. Goal: make the research engine safe and fast enough to sit behind an API, without changing any scientific behaviour. Baseline 133 tests; now **190 passing** (`.venv`) and 189 passing + 1 skipped without PyTorch (the CI configuration). Design source: `docs/architecture/LOCAL_ARCHITECTURE.md` (with the architecture-review amendments, §12).
 
 ## What was built
 | Step | Result | Main files |
@@ -11,7 +11,7 @@ Branch `feature/phase4-engine-hardening`, 2026-11-14. Goal: make the research en
 | 4 Model manager | one instance per model, loaded once under a lock, byte budget with LRU eviction, all inference on one thread; per-call verifier (the shared engine is never mutated); bounded caches; fallbacks cleared when the requested configuration works again | `models.py`, `qa/engine.py`, `retrieval/registry.py` |
 | 5 Per-text embeddings | content-addressed `embeddings` table; adding a paper embeds only its new chunks; garbage collection instead of delete-on-removal; the old corpus-keyed cache is untouched (experiment provenance) | `retrieval/chunk_embeddings.py` |
 | 6 Index generations | one library-wide index per library snapshot; a scope is a candidate filter, so scoped and unscoped results come from the same generation | `services/search.py` |
-| 7 Jobs | state machine `queued → parsing → indexing → ready / failed / cancelled`; original stored before enqueue; PDFs parsed in a spawned subprocess with time and memory limits; one rebuild per drained queue; cancel, retry, idempotent submission, restart recovery | `jobs.py`, `parse_worker.py` |
+| 7 Jobs | state machine `queued → parsing → indexing → ready / failed / cancelled`; original stored before enqueue; PDFs parsed in an isolated `python -m` subprocess with time and memory limits; one rebuild per drained queue; cancel, retry, idempotent submission, restart recovery | `jobs.py`, `parse_worker.py` |
 | 8 Services | `Workspace` is now a facade over `LibraryService`, `SearchService`, `AnalysisService` | `services/`, `workspace.py` |
 
 ## Acceptance tests added (from the architecture review)
@@ -27,6 +27,9 @@ Also covered: hostile and corrupt PDFs, blank (scanned) PDFs, page limit, parser
 | Upload 5 PDFs end to end | inline parse 0.19-0.96 s per file (≈2.2 s for 5, measured earlier) | **4.3-4.8 s for 5 (≈0.9 s per file)** through the job queue | slower by about 2 s for 5 files: each parse now starts an isolated process (safety, limits, crash isolation); not an improvement |
 | Peak resident memory, e5 + reranker + NLI used across 4 scopes in one process | one e5 and reranker copy **per scope** (unbounded) | **1.17 / 1.48 / 1.62 GB** over three runs; each model loaded exactly once | run-to-run variance is large (torch/MPS buffers); the byte budget (2 GB estimate) is enforced on model weights only |
 No other improvement is claimed. BM25 and TF-IDF still rebuild from texts on each library change (milliseconds at this size); first-query latency after a restart was not changed by this phase.
+
+## Found by the clean-clone acceptance test
+The first version launched the parser with multiprocessing `spawn`; from a clean clone, a script read from stdin (also `python -c` and notebooks) failed every upload with "the parser process ended without a result" because `spawn` re-imports the parent's `__main__`. The parser now runs as `python -m researchlens.parse_worker` and has a regression test. Citation pages were also checked against the real PDF: in 6 questions over the BERT paper, 16 of 18 cited passages were found on the cited page by strict text matching; the other 2 are the first paragraph of Section 3 (page 3) whose raw PDF text is hyphenated, a limitation of the checker, not of the citation.
 
 ## Not done in Phase 4 (carried forward)
 - `InferenceProvider` as an awaitable, batch-shaped interface (the local `ModelManager` is the only implementation today) and `presigned_url` is a stub that returns `None`.

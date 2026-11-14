@@ -13,7 +13,7 @@ ResearchLens X is a local application and research framework for working with a 
 
 It runs on your machine. It needs no account and no API key, and it does not send your documents anywhere. **No text in the app is written by a generative model**: answers are sentences copied from the papers, and every statement keeps a pointer back to its source.
 
-> **Status in one sentence:** the research engine is implemented, tested (189 tests) and evaluated; the current interface is a Streamlit app; a redesigned frontend and local API are planned (see [roadmap](docs/development/IMPLEMENTATION_ROADMAP.md)). Nothing is hosted online.
+> **Status in one sentence:** the research engine is implemented, tested (190 tests) and evaluated; the current interface is a Streamlit app; a redesigned frontend and local API are planned (see [roadmap](docs/development/IMPLEMENTATION_ROADMAP.md)). Nothing is hosted online.
 
 ## 2. Why does it exist?
 
