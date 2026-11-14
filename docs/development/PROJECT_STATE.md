@@ -2,7 +2,7 @@
 
 Updated 2026-11-14. Maintainer: Pranshu Kumar. The experiment register is in [PROJECT_BIBLE.md](../research/PROJECT_BIBLE.md) (section G); open limitations are in [KNOWN_LIMITATIONS.md](../user-guide/KNOWN_LIMITATIONS.md).
 
-## Implemented (tested: 133 tests with the app extras, 101 + 5 skipped with `requirements.txt` only)
+## Implemented (tested: 189 tests with the app extras; 177 + 1 skipped without PyTorch)
 - **Ingestion:** PyMuPDF text PDFs with sections, per-paragraph pages, references, arXiv id; scanned PDFs rejected (no OCR).
 - **Library:** SQLite store, duplicate and failure reporting, metadata filters, thread-safe.
 - **Retrieval:** BM25, TF-IDF, LSA, e5, SPECTER2, SciBERT, RRF, linear fusion, cross-encoder rerank, redundancy suppression, section filters. The app offers BM25, TF-IDF, e5 and RRF(BM25+e5) with a visible fallback to BM25.
@@ -24,7 +24,10 @@ Combined-evidence verification; cross-paper NLI relations (candidates only); res
 ## Direction (2026-11-14)
 Build the complete product **locally first**: Next.js frontend, local FastAPI API over the existing engine, local SQLite and filesystem storage, one-command startup. Online deployment is on hold and nothing cloud-related is built; boundaries are kept deployment-ready. Plan: [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md) · architecture: [LOCAL_ARCHITECTURE.md](../architecture/LOCAL_ARCHITECTURE.md) · UX: [UI_UX_SPECIFICATION.md](../architecture/UI_UX_SPECIFICATION.md) · audit: [REPOSITORY_AUDIT.md](REPOSITORY_AUDIT.md) · later deployment: [FUTURE_DEPLOYMENT_READINESS.md](../deployment-readiness/FUTURE_DEPLOYMENT_READINESS.md).
 
-## In progress
+## Phase 4 (engine hardening) complete
+See [PHASE4_RESULTS.md](PHASE4_RESULTS.md): settings, versioned store, original-file storage, model manager, per-text embeddings, index generations, job runner, services split. 189 tests. Next: Phase 5 (local API with browser-attack protection).
+
+## Earlier in-progress work
 Branch `chore/open-source-release` (not pushed): repository restructure, governance files, licence notes, `./run.sh` one-command launcher for the current Streamlit app (tested: first start, duplicate prevention, occupied port, stop, restart, Ctrl+C). Awaiting approval of the plan before the API and frontend migration.
 
 ## Not run

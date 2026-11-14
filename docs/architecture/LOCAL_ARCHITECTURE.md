@@ -1,6 +1,6 @@
 # Local architecture (target)
 
-Status: **proposal for approval**. Nothing in this document has been built yet except what section 1 marks "exists". Scope: a complete local application, no cloud services; every boundary that a later online deployment would need is an interface with a local implementation (see `docs/deployment-readiness/FUTURE_DEPLOYMENT_READINESS.md`).
+Status: **approved 2026-11-14; Phase 4 (engine hardening) implemented** (see `docs/development/PHASE4_RESULTS.md`): settings, versioned store, storage port, model manager, per-text embeddings, index generations, job runner, services. Still to build: the HTTP API with the §11 protections, the frontend, the awaitable `InferenceProvider`. Scope: a complete local application, no cloud services; every boundary that a later online deployment would need is an interface with a local implementation (see `docs/deployment-readiness/FUTURE_DEPLOYMENT_READINESS.md`).
 
 ## 1. Logical structure
 `Frontend → Local API → Research engine → Storage / Models`
@@ -116,7 +116,10 @@ Central `researchlens.settings` (Pydantic settings, `.env` supported; `RLX_DB` s
 | Variable | Default | Meaning |
 |---|---|---|
 | `RLX_DATA_DIR` | `./data` | root for library files, database, caches |
-| `RLX_DB_URL` | `sqlite:///{RLX_DATA_DIR}/library.sqlite` | metadata store |
+| `RLX_DB` | `{RLX_DATA_DIR}/processed/library.sqlite` | SQLite metadata store (a database URL replaces it when a hosted database exists) |
+| `RLX_FILES_DIR` | `{RLX_DATA_DIR}/library` | original PDFs |
+| `RLX_EMBEDDING_DIR` | `./artifacts/embeddings` | embedding stores |
+| `RLX_WORKSPACE` | `local` | workspace id scoping all stored data |
 | `RLX_HOST`, `RLX_PORT` | `127.0.0.1`, `8501` | bind address and preferred port |
 | `RLX_MAX_UPLOAD_MB`, `RLX_MAX_PAGES` | 50, 400 | upload limits (defaults to be validated) |
 | `RLX_DEVICE` | `auto` | `cpu`, `mps`, `auto` |

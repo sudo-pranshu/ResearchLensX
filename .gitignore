@@ -42,3 +42,6 @@ results/_rerun/
 
 # local runtime state
 .rlx/
+
+# stored original PDFs and local embedding stores
+data/library/

@@ -4,6 +4,7 @@ All notable changes to ResearchLens X. Entry format: type (added / changed / int
 
 ## Unreleased
 
+- added · **engine hardening (Phase 4)**: central settings (`RLX_*`); versioned workspace-scoped SQLite (WAL, migrations, status/file columns, jobs); original PDFs stored behind `DocumentStorage` with upload limits; `ModelManager` (one model instance, byte budget, single inference thread, per-call verifier); per-text embedding store (adding a paper embeds only its chunks); library-wide index with scope as a filter; job runner with spawned parse worker, cancel/retry/idempotency/restart recovery; `Workspace` split into library/search/analysis services; schema 1.4 (`Document.n_pages`). 56 new tests; measurements in `docs/development/PHASE4_RESULTS.md`
 - added · open-source release preparation: LICENSE (AGPL-3.0-or-later), CITATION.cff, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, `.env.example`, issue templates, CI (tests, docs gate), documentation index and third-party licence notes
 - changed · repository reorganised: `docs/` (architecture, research, user, development, production), `apps/streamlit/` (was `app/`), `experiments/notebooks/` (was `notebooks/`); README rewritten; course-project wording and former team documents removed
 - added · `scripts/check_docs.py` (link and wording gate, also run in CI)
